@@ -128,8 +128,8 @@ function render(){
      const cell=add(svg,'polygon',{points:i===j?[point(a,a),point(b,b),point(a,b)].join(' '):[point(a,c),point(b,c),point(b,e),point(a,e)].join(' '),fill:color});
      cell.chipInfo=`HepG2 Hi-C · ${hic.accession} · hg38\n${p.chrom}:${fmt(a)}–${fmt(b)} ↔ ${p.chrom}:${fmt(c)}–${fmt(e)}\n${hic.normalization}: ${value===null?'Masked / unavailable':value.toPrecision(4)} · ${sizeLabel(hic.resolution)} bins`;
     }
-    add(svg,'text',{x:pad,y:hicTop+hicDepth+45,fill:'#6c757d','font-size':9},`White → red: 0 → ${hic.colorMax.toPrecision(3)} ${hic.normalization==='NONE'?'raw contacts':'KR-balanced contacts'} · log color scale · capped at 98th percentile · gray: masked`);
-    add(svg,'text',{x:pad,y:hicTop+hicDepth+59,fill:'#6c757d','font-size':8},hic.warning||'HepG2 cell line, merged replicates · both anchors in view · depth represents genomic separation');
+    add(svg,'text',{x:pad,y:hicTop+hicDepth+45,fill:'#6c757d','font-size':9},`White → red: 0 → ${hic.colorMax.toPrecision(3)} ${hic.normalization==='NONE'?'raw contacts':'weight-balanced contacts'} · log color scale · capped at 98th percentile · gray: masked`);
+    add(svg,'text',{x:pad,y:hicTop+hicDepth+59,fill:'#6c757d','font-size':8},hic.warning||'HepG2 control, merged matrix · both anchors in view · depth represents genomic separation');
    }
   }
   if($('models').checked){if(p.modelCount>5)add(svg,'text',{x:width-15,y:height-1,'text-anchor':'end',fill:'#6c757d','font-size':7},`5 of ${p.modelCount} genes shown`);modelRows.forEach((m,i)=>{const yy=geneTop+i*17;rect(m.start,m.end,yy,1,'#8b99a6');const starts=m.ex_s.split(',').filter(Boolean).map(Number),ends=m.ex_e.split(',').filter(Boolean).map(Number);starts.forEach((a,j)=>rect(a+1,ends[j],yy-2,5,'#596f83'));add(svg,'text',{x:Math.min(width-45,Math.max(pad,x(toRel(m.start)))),y:yy+12,fill:'#596f83','font-size':8},`${m.gname} ${m.strand===p.strand?'→':'←'}`);});}
