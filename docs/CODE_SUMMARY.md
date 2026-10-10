@@ -21,25 +21,29 @@ The Hi-C reader queries the local matrix at a resolution chosen to bound allocat
 | `GET /api/download-pdf/<token>` | Download a generated PDF |
 | `GET /api/export?view=...` | Legacy signal CSV endpoint; no visible export-signal button |
 
+See [data requirements and formats](DATA_REQUIREMENTS.md) for a step-by-step setup guide.
+
 ## Local data layout
 
 Preserve these paths relative to the repository root, or deliberately update the corresponding reader configuration. The source-only archive excludes all of these datasets and generated indexes.
 
+Reference FASTA files, FASTA indexes, and GTF annotations are grouped by species in `reference_genomes/`. See [the folder guide](FOLDER_LAYOUT.md).
+
 | Location | Contents / consumer |
 |---|---|
 | `cross_species_visual_tool/index/` | `*_models.tsv.gz` plus `.tbi` indexes; `Human_anchors.json` |
-| `cross_species_visual_tool/mole_rat_peaks/` | NMR, BMR, DMR bigWigs and narrowPeak files |
-| `cross_species_visual_tool/rat/` | Rat signal and peaks |
-| `selected3/` | Human scaled bigWigs, peaks, hg38 annotations |
-| `mouse_mm10/`, `macaque/`, `Rabbit/`, `Africa_spiny_mouse/` | Additional species' signal, peaks, and annotation inputs |
-| `mhetglav3/` | NMR histone-region BED files |
-| `ChIP_seq/liftover/final/` | Other species' assembly-compatible histone peaks |
-| `ENCODE4/encodeCcreRegistry.hg38.bb` | Human cCRE registry |
-| `loops/` | Sample-specific NMR enrich1.0 BEDPE predictions |
-| `4DNFICSTCJQZ.hic` | Human HepG2 hg38 Hi-C; [4DN source](https://data.4dnucleome.org/files-processed/4DNFICSTCJQZ/) |
-| `mHetGlaV3.primary_hypothalamus_ABC_enhancer.bedpe (1).gz` | NMR ABC test input |
-| `mHetGlaV3.primary.filteredRepeats.bed.gz` | Source repeat annotations |
-| `CrossSpecies_Count.xlsx`, `rnaLongTPM.xlsx`, `protLongDF.xlsx` | Primary RNA, mouse RNA supplement, and protein workbooks |
+| `data/atac/mole_rat_peaks/` | NMR, BMR, DMR bigWigs and narrowPeak files |
+| `data/atac/rat/` | Rat signal and peaks |
+| `data/atac/selected3/` | Human scaled bigWigs and peaks |
+| `data/atac/mouse_mm10/`, `data/atac/macaque/`, `data/atac/Rabbit/`, `data/atac/Africa_spiny_mouse/` | Additional species' signal and peaks |
+| `data/chipseq/mhetglav3/` | NMR histone-region BED files |
+| `data/chipseq/ChIP_seq/liftover/final/` | Other species' assembly-compatible histone peaks |
+| `data/regulatory_annotations/ENCODE4/encodeCcreRegistry.hg38.bb` | Human cCRE registry |
+| `data/interactions/nmr_microc/` | Sample-specific NMR enrich1.0 BEDPE predictions |
+| `data/interactions/human_hic/GSE278978_HepG2-control_merge.mcool` | Human HepG2 hg38 Hi-C; [GEO source](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE278978) |
+| `data/interactions/nmr_abc/mHetGlaV3.primary_hypothalamus_ABC_enhancer.bedpe (1).gz` | NMR ABC test input |
+| `data/regulatory_annotations/repeats/mHetGlaV3.primary.filteredRepeats.bed.gz` | Source repeat annotations |
+| `data/omics/rna/CrossSpecies_Count.xlsx`, `data/omics/rna/rnaLongTPM.xlsx`, `data/omics/protein/protLongDF.xlsx` | Primary RNA, mouse RNA supplement, and protein workbooks |
 | `cross_species_visual_tool/web_app/data/` | Generated omics SQLite, lifespan JSON, and TE BGZF/tabix files |
 
 Startup currently requires signal and transcript indexes for all configured species, even when some are hidden in the UI. There is no automatic downloader or bundled synthetic dataset. Configured file names can be inspected in `server.py`, `chipseq.py`, and the respective readers.
@@ -56,7 +60,7 @@ python build_omics.py
 python build_mls.py
 ```
 
-These commands are not a universal end-to-end importer. `build_species_indexes.py` covers human, mm10 mouse, macaque, rabbit, and ASM; the original NMR/BMR/DMR/rat transcript indexes must be supplied separately. Its exact GTF/FASTA-index filenames are defined in `SOURCES`. The omics builder requires lxml and the workbook sources; the lifespan builder requires the omics database, project `Anage.zip`, and sibling `Open4Gene-main/species_MLS.csv`.
+These commands are not a universal end-to-end importer. `build_species_indexes.py` covers human, mm10 mouse, macaque, rabbit, and ASM; the original NMR/BMR/DMR/rat transcript indexes must be supplied separately. Its exact GTF/FASTA-index filenames are defined in `SOURCES`. The omics builder requires lxml and the workbook sources; the lifespan builder requires the omics database, project `data/omics/lifespan/Anage.zip`, and sibling `Open4Gene-main/species_MLS.csv`.
 
 ## Important dataset decisions
 
