@@ -15,6 +15,8 @@ The current local dataset contains nine species and 26 ATAC samples: human, nake
 - Liver transcriptome/proteome scatter plots against MLS or log10(MLS), with Pearson r, p-value, R², and a linear fit.
 - Vector PDF export with four displayed panels per page, and liver-data CSV export.
 
+For required inputs, exact file formats, and setup steps, see the [data requirements guide](docs/DATA_REQUIREMENTS.md).
+
 ## Installation and launch
 
 Python 3.9+ is required; Python 3.11 is a reasonable new-environment choice. Availability of binary wheels depends on platform and Python version.
