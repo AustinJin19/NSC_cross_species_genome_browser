@@ -11,7 +11,7 @@ The current local dataset contains nine species and 26 ATAC samples: human, nake
 - Editable genomic span and signal-bin count, with per-panel or shared signal scales.
 - Gene models, ATAC peaks, H3K4me3/H3K27ac regions, human ENCODE4 cCREs, and NMR TE-class filtering.
 - NMR predicted Micro-C arcs and a separately labeled hypothalamus ABC test track.
-- Human hg38 HepG2 Hi-C heatmap from a local `.hic` file, automatic resolution, KR balancing when available, and a 700 px heatmap depth.
+- Human hg38 HepG2 Hi-C heatmap from a local `.mcool` file, automatic resolution, stored-weight balancing when available, and a 700 px heatmap depth.
 - Liver transcriptome/proteome scatter plots against MLS or log10(MLS), with Pearson r, p-value, R², and a linear fit.
 - Vector PDF export with four displayed panels per page, and liver-data CSV export.
 
@@ -29,6 +29,10 @@ python cross_species_visual_tool/web_app/server.py
 Open http://127.0.0.1:8765/. An alternative port can be supplied with `--port 8766`.
 
 **Data are not included in the code repository.** A fresh clone will not launch successfully until the configured species' bigWigs and transcript indexes are installed. Paths currently follow the local project layout rather than a general configuration file. See [data setup and architecture](docs/CODE_SUMMARY.md).
+
+## Data organization
+
+Reference genomes and annotations are in `reference_genomes/`; experimental inputs are grouped by assay in `data/`. See the [folder guide](docs/FOLDER_LAYOUT.md) for paths and the move manifest.
 
 ## Code layout
 
