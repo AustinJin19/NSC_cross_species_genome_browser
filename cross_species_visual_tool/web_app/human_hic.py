@@ -1,36 +1,37 @@
-"""Bounded, local interval queries for the hg38 HepG2 4DN contact matrix."""
+"""Bounded, local interval queries for the hg38 HepG2 control multi-resolution contact matrix."""
 from pathlib import Path
 from functools import lru_cache
 import sys
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / '.deps'))
-PATH = Path(__file__).resolve().parents[2] / '4DNFICSTCJQZ.hic'
-RESOLUTIONS = (1000, 2000, 5000, 10000, 25000, 50000, 100000,
-               250000, 500000, 1000000, 2500000, 5000000, 10000000)
+PATH = Path(__file__).resolve().parents[2] / 'data/interactions/human_hic/GSE278978_HepG2-control_merge.mcool'
+
 
 
 @lru_cache(maxsize=24)
 def query(chrom, lo, hi):
     """Input and returned intervals are 1-based inclusive; matrix bins are BED."""
-    base = dict(label='HepG2 in situ Hi-C', accession='4DNFICSTCJQZ',
+    base = dict(label='HepG2 control Hi-C', accession='GSE278978',
                 assembly='hg38', available=False, cells=[])
     try:
         import hictkpy
         if not PATH.exists():
             return dict(base, error='Local Hi-C file unavailable')
         # Bound matrix allocation even for chromosome-wide browser windows.
-        overview = hictkpy.File(str(PATH), 1000000)
-        name = chrom.removeprefix('chr')
+        resolutions = sorted(int(r) for r in hictkpy.MultiResFile(str(PATH)).resolutions())
+        overview = hictkpy.File(str(PATH), resolutions[-1])
+        chromosomes = overview.chromosomes()
+        name = chrom if chrom in chromosomes else chrom.removeprefix('chr')
         size = overview.chromosomes().get(name)
         if size is None:
             return dict(base, error='Chromosome absent from Hi-C file')
         start, end = max(0, lo-1), min(size, hi)
         if end <= start:
             return dict(base, error='Outside Hi-C chromosome')
-        resolution = next((r for r in RESOLUTIONS if (end-start)/r <= 160), RESOLUTIONS[-1])
+        resolution = next((r for r in resolutions if (end-start)/r <= 160), resolutions[-1])
         f = hictkpy.File(str(PATH), resolution)
-        norm = 'KR' if 'KR' in f.avail_normalizations() else 'NONE'
+        norm = 'weight' if 'weight' in f.avail_normalizations() else 'NONE'
         warning = None
         try:
             matrix = f.fetch(f'{name}:{start}-{end}', normalization=norm).to_numpy()
@@ -38,7 +39,7 @@ def query(chrom, lo, hi):
             if norm == 'NONE':
                 raise
             norm = 'NONE'
-            warning = 'KR unavailable for this region; showing raw counts'
+            warning = 'Balancing weights unavailable for this region; showing raw counts'
             matrix = f.fetch(f'{name}:{start}-{end}').to_numpy()
         origin = start // resolution * resolution
         cells = []

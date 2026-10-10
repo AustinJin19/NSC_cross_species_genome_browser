@@ -11,7 +11,7 @@ from lxml import etree
 from mouse_supplement import add_mouse_records
 
 HERE = Path(__file__).resolve().parent
-SOURCE = HERE.parent.parent
+from data_paths import workbook_path
 DB = HERE / 'data' / 'liver_omics.sqlite'
 NS = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
 
@@ -51,7 +51,7 @@ def build():
     con.executescript('CREATE TABLE measurements(assay TEXT, symbol TEXT, sample TEXT, species TEXT, common TEXT, raw REAL, log REAL, normalized REAL, source TEXT, source_row INTEGER, norm_on TEXT); CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT);')
     metadata = {}
     for assay, name in [('rna','CrossSpecies_Count.xlsx'),('protein','protLongDF.xlsx')]:
-        path=SOURCE/name; started=time.time(); batch=[]; liver=0; total=0
+        path=workbook_path(name); started=time.time(); batch=[]; liver=0; total=0
         iterator=rows(path); _, header=next(iterator); columns={v:k for k,v in header.items()}
         for row_number, row in iterator:
             total+=1
@@ -71,7 +71,7 @@ def build():
         if batch: con.executemany('INSERT INTO measurements VALUES (?,?,?,?,?,?,?,?,?,?,?)',batch)
         metadata[assay]=dict(file=name,rows=total,liver_rows=liver,size=path.stat().st_size,mtime_ns=path.stat().st_mtime_ns)
         con.commit();print(f'{name}: complete in {time.time()-started:.1f}s; {liver:,} liver records',flush=True)
-    mouse_path=SOURCE/'rnaLongTPM.xlsx'
+    mouse_path=workbook_path('rnaLongTPM.xlsx')
     def mouse_records():
         iterator=rows(mouse_path); _,header=next(iterator); columns={v:k for k,v in header.items()}
         for n,row in iterator:

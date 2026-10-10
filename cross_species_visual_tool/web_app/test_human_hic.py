@@ -1,4 +1,4 @@
-"""Integration checks against the optional local 4DN matrix."""
+"""Integration checks against the optional local HepG2 control mcool matrix."""
 import json
 import unittest
 import numpy as np
@@ -12,9 +12,11 @@ class HumanHiC(unittest.TestCase):
         lo, hi = 102430563, 102530563
         result = human_hic.query('chr12', lo, hi)
         self.assertTrue(result['available'], result)
+        self.assertEqual(result['accession'], 'GSE278978')
+        self.assertEqual(result['normalization'], 'weight')
         self.assertEqual(result['origin'], 102430000)
         direct = hictkpy.File(str(human_hic.PATH), result['resolution'])
-        m = direct.fetch(f'12:{lo-1}-{hi}', normalization=result['normalization']).to_numpy()
+        m = direct.fetch(f'chr12:{lo-1}-{hi}', normalization=result['normalization']).to_numpy()
         for i,j,value in result['cells']:
             if np.isfinite(m[i,j]):
                 self.assertAlmostEqual(value, float(m[i,j]))

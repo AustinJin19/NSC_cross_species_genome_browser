@@ -3,7 +3,7 @@ from pathlib import Path
 from functools import lru_cache
 import math
 
-LOOPS = Path(__file__).resolve().parents[2] / 'loops'
+LOOPS = Path(__file__).resolve().parents[2] / 'data/interactions/nmr_microc'
 
 @lru_cache(maxsize=3)
 def read_loops(sample):

@@ -3,7 +3,7 @@ from pathlib import Path
 from functools import lru_cache
 from collections import defaultdict
 from bisect import bisect_left,bisect_right
-ROOT=Path(__file__).resolve().parents[2]/'mhetglav3'
+ROOT=Path(__file__).resolve().parents[2]/'data/chipseq/mhetglav3'
 TRACKS=[('H3K4me3','#d62728','hetGla-H3K4me3_replicated-peaks_mHetGlaV3.bed'),('H3K27ac','#e6b800','hetGla-H3K27Ac_replicated-peaks_mHetGlaV3.bed')]
 
 LIFTED=ROOT.parent/'ChIP_seq'/'liftover'/'final'

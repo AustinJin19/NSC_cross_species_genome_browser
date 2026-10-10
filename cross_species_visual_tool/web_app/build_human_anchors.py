@@ -8,7 +8,7 @@ DEST=ROOT/'cross_species_visual_tool/index/Human_anchors.json'
 
 def build():
  candidates={}
- with gzip.open(ROOT/'selected3/gencode.v50.primary_assembly.annotation.gtf.gz','rt') as handle:
+ with gzip.open(ROOT/'reference_genomes/selected3/gencode.v50.primary_assembly.annotation.gtf.gz','rt') as handle:
   for line in handle:
    if line.startswith('#'):continue
    f=line.rstrip().split('\t')

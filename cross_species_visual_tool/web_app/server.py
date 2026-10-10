@@ -32,15 +32,15 @@ STATIC = Path(__file__).resolve().parent / 'www'
 # Optional project-local package install; ordinary pip installs also work.
 sys.path.insert(0, str(Path(__file__).resolve().parent / '.deps'))
 SPECS = [
-    ('Human', 'Human (hg38)', 'Homo sapiens', '#5275b5', '../selected3', ''),
-    ('NMR', 'Naked mole-rat', 'Heterocephalus glaber', '#477763', 'mole_rat_peaks', 'NMR'),
-    ('BMR', 'Blind mole-rat', 'Nannospalax galili', '#927598', 'mole_rat_peaks', 'BMR'),
-    ('DMR', 'Damaraland mole-rat', 'Fukomys damarensis', '#bd9158', 'mole_rat_peaks', 'DMR'),
-    ('Mouse', 'Mouse (mm10)', 'Mus musculus', '#6389a1', '../mouse_mm10', 'wtmice'),
-    ('Rat', 'Rat', 'Rattus norvegicus', '#90945b', 'rat', 'Rat'),
-    ('Macaque', 'Rhesus macaque', 'Macaca mulatta', '#b66579', '../macaque', 'SRR'),
-    ('Rabbit', 'Eastern cottontail', 'Sylvilagus floridanus', '#997342', '../Rabbit', 'CTR'),
-    ('ASM', 'African spiny mouse', 'Acomys cahirinus', '#369a98', '../Africa_spiny_mouse', 'ASM'),
+    ('Human', 'Human (hg38)', 'Homo sapiens', '#5275b5', '../data/atac/selected3', ''),
+    ('NMR', 'Naked mole-rat', 'Heterocephalus glaber', '#477763', '../data/atac/mole_rat_peaks', 'NMR'),
+    ('BMR', 'Blind mole-rat', 'Nannospalax galili', '#927598', '../data/atac/mole_rat_peaks', 'BMR'),
+    ('DMR', 'Damaraland mole-rat', 'Fukomys damarensis', '#bd9158', '../data/atac/mole_rat_peaks', 'DMR'),
+    ('Mouse', 'Mouse (mm10)', 'Mus musculus', '#6389a1', '../data/atac/mouse_mm10', 'wtmice'),
+    ('Rat', 'Rat', 'Rattus norvegicus', '#90945b', '../data/atac/rat', 'Rat'),
+    ('Macaque', 'Rhesus macaque', 'Macaca mulatta', '#b66579', '../data/atac/macaque', 'SRR'),
+    ('Rabbit', 'Eastern cottontail', 'Sylvilagus floridanus', '#997342', '../data/atac/Rabbit', 'CTR'),
+    ('ASM', 'African spiny mouse', 'Acomys cahirinus', '#369a98', '../data/atac/Africa_spiny_mouse', 'ASM'),
 ]
 MODEL_INDEX = {'Mouse': 'Mouse_mm10'}
 EXCLUDED_SAMPLES = {'NMR1Liver'}

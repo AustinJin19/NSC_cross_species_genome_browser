@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import closing
 from functools import lru_cache
 from pathlib import Path
+from data_paths import workbook_path
 
 DB = Path(__file__).resolve().parent / 'data' / 'liver_omics.sqlite'
 
@@ -34,7 +35,7 @@ def query(gene):
     catalog,sources=catalog_for_version(DB.stat().st_mtime_ns)
     stale=[]
     for source in sources.values():
-        path=Path(__file__).resolve().parent.parent.parent/source['file']
+        path=workbook_path(source['file'])
         if not path.exists() or path.stat().st_size!=source['size'] or path.stat().st_mtime_ns!=source['mtime_ns']:
             stale.append(source['file'])
     lifespans=json.loads((DB.parent/'species_mls.json').read_text())

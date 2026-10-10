@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parent
 species=[r[0] for r in sqlite3.connect(root/'data/liver_omics.sqlite').execute('select distinct species from measurements order by species')]
 lab={r['species']:r for r in csv.DictReader(open(root.parents[2]/'Open4Gene-main'/'species_MLS.csv'))}
-with zipfile.ZipFile(root.parents[1]/'Anage.zip') as z:
+with zipfile.ZipFile(root.parents[1]/'data/omics/lifespan/Anage.zip') as z:
  anage={r['Genus']+' '+r['Species']:r for r in csv.DictReader(io.StringIO(z.read('anage_data.txt').decode()),delimiter='\t')}
 result={}
 for sp in species:

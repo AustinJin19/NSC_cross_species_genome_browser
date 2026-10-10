@@ -4,7 +4,7 @@ from functools import lru_cache
 import gzip
 import math
 
-SOURCE = Path(__file__).resolve().parents[2] / 'mHetGlaV3.primary_hypothalamus_ABC_enhancer.bedpe (1).gz'
+SOURCE = Path(__file__).resolve().parents[2] / 'data/interactions/nmr_abc/mHetGlaV3.primary_hypothalamus_ABC_enhancer.bedpe (1).gz'
 
 @lru_cache(maxsize=1)
 def read_links():

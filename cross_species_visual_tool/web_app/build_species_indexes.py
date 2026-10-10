@@ -17,9 +17,9 @@ SOURCES = {
 }
 
 def build(key, folder, annotation, fai):
- directory = ROOT / folder
+ directory = ROOT / 'reference_genomes' / folder
  sizes = {f[0]:int(f[1]) for line in (directory/fai).read_text().splitlines() if (f:=line.split('\t'))}
- tracks = sorted(directory.glob('*.bw'))
+ tracks = sorted((ROOT / 'data/atac' / folder).glob('*.bw'))
  for track in tracks:
   with pyBigWig.open(str(track)) as bw:
    mismatches = [c for c,n in bw.chroms().items() if sizes.get(c)!=n]

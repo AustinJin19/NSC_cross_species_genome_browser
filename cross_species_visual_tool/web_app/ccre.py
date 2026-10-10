@@ -1,7 +1,7 @@
 """ENCODE4 biosample-agnostic hg38 cCREs; indexed local bigBed queries."""
 from pathlib import Path
 import pyBigWig
-DATA=Path(__file__).resolve().parents[2]/'ENCODE4/encodeCcreRegistry.hg38.bb'
+DATA=Path(__file__).resolve().parents[2]/'data/regulatory_annotations/ENCODE4/encodeCcreRegistry.hg38.bb'
 def query(chrom,lo,hi):
     result=dict(available=DATA.exists(),assembly='hg38',source='ENCODE4 cCRE v4',regions=[])
     if not result['available']:return result

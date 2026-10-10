@@ -85,13 +85,13 @@ The sidebar reuses `ur-logo.svg` from `Open4Gene-main/website_NSC`, paired with 
 ### Liver multi-omics and lifespan correlations
 
 The liver section follows the main gene search. RNA comes from
-`CrossSpecies_Count.xlsx`; protein comes from `protLongDF.xlsx` in the project
+`data/omics/rna/CrossSpecies_Count.xlsx`; protein comes from `data/omics/protein/protLongDF.xlsx` under `data/omics/` in the project
 root. Rebuild the read-only SQLite index with `python3 build_omics.py` (requires
 lxml). Workbook dimensions are unreliable, so the importer streams actual XML
 rows. Workbooks are never modified. Only rows labeled Liver are imported;
 BMR_Turk_Lu is explicitly excluded as Lung, while BMR_Turk_Liv is the liver sample.
 Mouse liver records missing from the primary source are supplemented from
-`rnaLongTPM.xlsx`, with per-record workbook provenance. Comparing 928,299 shared
+`data/omics/rna/rnaLongTPM.xlsx`, with per-record workbook provenance. Comparing 928,299 shared
 liver records showed exactly identical TPM and log.tpm. Existing primary records
 take precedence; the supplement is restricted to Mus musculus liver.
 
@@ -105,7 +105,7 @@ adjustment; absent measurements remain absent.
 
 `data/species_mls.json` records local lifespan values and provenance. Rebuild with
 `python3 build_mls.py`, using the sibling Open4Gene-main/species_MLS.csv verified
-MLS_corrected entries, then exact-name matches from project Anage.zip. Unmatched
+MLS_corrected entries, then exact-name matches from project data/omics/lifespan/Anage.zip. Unmatched
 species are excluded from correlations. These are source snapshots, not current
 longevity-record claims.
 
@@ -119,7 +119,7 @@ Validation: `python3 -m unittest discover -p 'test_*.py'` and
 ### NMR ChIP-seq regions
 
 The NMR panels include optional H3K4me3 and H3K27ac lanes from the replicated-peak
-BED files in project `mhetglav3/`. These are region annotations, not quantitative
+BED files in project `data/chipseq/mhetglav3/`. These are region annotations, not quantitative
 ChIP signal. Coordinates are labeled mHetGlaV3 in the source filenames; all input
 intervals fit the chromosome names and sizes in the NMR bigWig. BED starts are
 converted from 0-based to 1-based for display. The lanes follow the same gene
@@ -129,7 +129,7 @@ No tissue or replicate match to the ATAC samples is inferred from these files.
 
 ### NMR TE repeats
 
-The NMR-only TE lane uses `mHetGlaV3.primary.filteredRepeats.bed.gz` from the project
+The NMR-only TE lane uses `data/regulatory_annotations/repeats/mHetGlaV3.primary.filteredRepeats.bed.gz` from the project
 root. Run `python3 build_repeats.py` to rebuild the sorted BGZF/tabix index in data/.
 The source BED is unchanged. Classes LINE, SINE, LTR, DNA, Retroposon, and RC are
 included; simple repeats, low complexity, satellites, RNA annotations, Unknown,
@@ -147,7 +147,7 @@ legend order. The sidebar toggle controls all NMR panels, including PDF export.
 ### Additional ATAC species and mm10 mouse (2026-09-30)
 
 Before adding human, the browser loaded eight species and 23 samples. Mouse uses only the three
-`mouse_mm10/` bigWigs, their matching peaks, and the mm10 RefSeq annotation.
+`data/atac/mouse_mm10/` bigWigs, their matching peaks, and the mm10 RefSeq annotation.
 The old mouse files/index are preserved but are no longer used by the web app.
 Rhesus macaque (`Macaca mulatta`, four SRR tracks), eastern cottontail
 (`Sylvilagus floridanus`, two CTR tracks), and African spiny mouse
@@ -168,7 +168,7 @@ species does not create missing RNA/protein observations.
 
 ### Human hg38 panel (selected3)
 
-The human panel uses `selected3/122_scaled.bw`, `151_scaled.bw`, and
+The human panel uses `data/atac/selected3/122_scaled.bw`, `151_scaled.bw`, and
 `152_scaled.bw`, their matching gzip-compressed narrowPeak files, and GENCODE
 v50 primary-assembly GTF. The supplied hg38 FASTA index validates bigWig sequence
 lengths. Transcript features on sequences absent from the signal tracks are
@@ -189,7 +189,7 @@ chr15:58,065,711 on the minus strand (hg38, 1-based).
 ### NMR predicted Micro-C loops
 
 The NMR panel includes an independently toggleable arc lane from project-root
-`loops/NMR{3,4,8}Liver.microc_ch0.enrich1.0.loops.bedpe`, matched to the selected ATAC sample.
+`data/interactions/nmr_microc/NMR{3,4,8}Liver.microc_ch0.enrich1.0.loops.bedpe`, matched to the selected ATAC sample.
 These are labeled EPCOTv2 predictions on mHetGlaV3, based on the user's confirmation.
 All 156,288 loop records pass coordinate-bound checks against the NMR signal assembly.
 BEDPE input is 0-based half-open; the API and tooltips use 1-based inclusive anchors.
@@ -217,10 +217,10 @@ The active Micro-C dataset uses enrich1.0 (`min_enrich=1.0` in the supplied meta
 
 ### Human Hi-C heatmap
 
-`human_hic.py` reads project-root `4DNFICSTCJQZ.hic` using hictkpy. This is
-HepG2 in situ Hi-C on hg38, with merged replicates, not a matched primary-liver
+`human_hic.py` reads `data/interactions/human_hic/GSE278978_HepG2-control_merge.mcool` using hictkpy. This is
+The supplied HepG2 control merged matrix has chromosome lengths matching hg38; it is not a matched primary-liver
 ATAC replicate. A 700 px triangular heatmap follows the human genomic window and
-strand. Resolution is selected automatically to bound matrix size. KR-balanced
+strand. Resolution is selected automatically to bound matrix size. weight-balanced
 contacts are shown when available; fallback raw counts are explicitly labeled.
 Color uses log1p scaling with a view-specific 98th-percentile cap. Masked values
 are gray. The heatmap can be toggled and is included in the track PDF.

@@ -4,12 +4,12 @@ from pathlib import Path
 from collections import Counter
 import pyBigWig,pysam
 ROOT=Path(__file__).resolve().parents[2]
-SOURCE=ROOT/'mHetGlaV3.primary.filteredRepeats.bed.gz'
+SOURCE=ROOT/'data/regulatory_annotations/repeats/mHetGlaV3.primary.filteredRepeats.bed.gz'
 OUT=Path(__file__).resolve().parent/'data'/'nmr_TE.bed.gz'
 CLASSES={'LINE','SINE','LTR','DNA','Retroposon','RC'}
 def build():
     counts=Counter()
-    with pyBigWig.open(str(ROOT/'cross_species_visual_tool/mole_rat_peaks/NMR3Liver.cpm.bw')) as bw:chroms=bw.chroms()
+    with pyBigWig.open(str(ROOT/'data/atac/mole_rat_peaks/NMR3Liver.cpm.bw')) as bw:chroms=bw.chroms()
     with tempfile.TemporaryDirectory(dir=OUT.parent) as tmp:
         plain=Path(tmp)/'regions.bed';sorted_path=Path(tmp)/'sorted.bed'
         with gzip.open(SOURCE,'rt') as src,plain.open('w') as dst:
