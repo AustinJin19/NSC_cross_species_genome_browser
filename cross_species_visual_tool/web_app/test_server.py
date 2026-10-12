@@ -83,6 +83,7 @@ class GenomicQueries(unittest.TestCase):
         p = server.get_panel('Rat', 'TP53', 500000, 0, None)
         self.assertEqual(p['models'][0]['gname'].upper(), 'TP53')
         self.assertGreater(p['modelCount'], 5)
+        self.assertEqual(len(p['models']), p['modelCount'])
 
     def test_csv_preserves_coordinates_and_samples(self):
         result = server.browse({'species':['Mouse'], 'window':50, 'pan':1000})

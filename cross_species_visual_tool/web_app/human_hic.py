@@ -14,13 +14,18 @@ def query(chrom, lo, hi):
     """Input and returned intervals are 1-based inclusive; matrix bins are BED."""
     base = dict(label='HepG2 control Hi-C', accession='GSE278978',
                 assembly='hg38', available=False, cells=[])
+    return query_matrix(PATH, chrom, lo, hi, base)
+
+
+def query_matrix(path, chrom, lo, hi, base):
+    """Read a bounded matrix using 1-based browser coordinates for any assembly."""
     try:
         import hictkpy
-        if not PATH.exists():
+        if not path.exists():
             return dict(base, error='Local Hi-C file unavailable')
         # Bound matrix allocation even for chromosome-wide browser windows.
-        resolutions = sorted(int(r) for r in hictkpy.MultiResFile(str(PATH)).resolutions())
-        overview = hictkpy.File(str(PATH), resolutions[-1])
+        resolutions = sorted(int(r) for r in hictkpy.MultiResFile(str(path)).resolutions())
+        overview = hictkpy.File(str(path), resolutions[-1])
         chromosomes = overview.chromosomes()
         name = chrom if chrom in chromosomes else chrom.removeprefix('chr')
         size = overview.chromosomes().get(name)
@@ -30,7 +35,7 @@ def query(chrom, lo, hi):
         if end <= start:
             return dict(base, error='Outside Hi-C chromosome')
         resolution = next((r for r in resolutions if (end-start)/r <= 160), resolutions[-1])
-        f = hictkpy.File(str(PATH), resolution)
+        f = hictkpy.File(str(path), resolution)
         norm = 'weight' if 'weight' in f.avail_normalizations() else 'NONE'
         warning = None
         try:

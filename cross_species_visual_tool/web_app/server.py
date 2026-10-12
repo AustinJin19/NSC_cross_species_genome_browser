@@ -24,23 +24,24 @@ import chipseq
 import ccre
 import repeats
 import microc
-import abc_tracks
+import nmr_hic
 import human_hic
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = Path(__file__).resolve().parent / 'www'
 # Optional project-local package install; ordinary pip installs also work.
 sys.path.insert(0, str(Path(__file__).resolve().parent / '.deps'))
+# Stable species colors from the ggsci Nature-inspired NPG palette.
 SPECS = [
-    ('Human', 'Human (hg38)', 'Homo sapiens', '#5275b5', '../data/atac/selected3', ''),
-    ('NMR', 'Naked mole-rat', 'Heterocephalus glaber', '#477763', '../data/atac/mole_rat_peaks', 'NMR'),
-    ('BMR', 'Blind mole-rat', 'Nannospalax galili', '#927598', '../data/atac/mole_rat_peaks', 'BMR'),
-    ('DMR', 'Damaraland mole-rat', 'Fukomys damarensis', '#bd9158', '../data/atac/mole_rat_peaks', 'DMR'),
-    ('Mouse', 'Mouse (mm10)', 'Mus musculus', '#6389a1', '../data/atac/mouse_mm10', 'wtmice'),
-    ('Rat', 'Rat', 'Rattus norvegicus', '#90945b', '../data/atac/rat', 'Rat'),
-    ('Macaque', 'Rhesus macaque', 'Macaca mulatta', '#b66579', '../data/atac/macaque', 'SRR'),
-    ('Rabbit', 'Eastern cottontail', 'Sylvilagus floridanus', '#997342', '../data/atac/Rabbit', 'CTR'),
-    ('ASM', 'African spiny mouse', 'Acomys cahirinus', '#369a98', '../data/atac/Africa_spiny_mouse', 'ASM'),
+    ('Human', 'Human (hg38)', 'Homo sapiens', '#3C5488', '../data/atac/selected3', ''),
+    ('NMR', 'Naked mole-rat', 'Heterocephalus glaber', '#00A087', '../data/atac/mole_rat_peaks', 'NMR'),
+    ('BMR', 'Blind mole-rat', 'Nannospalax galili', '#4DBBD5', '../data/atac/mole_rat_peaks', 'BMR'),
+    ('DMR', 'Damaraland mole-rat', 'Fukomys damarensis', '#F39B7F', '../data/atac/mole_rat_peaks', 'DMR'),
+    ('Mouse', 'Mouse (mm10)', 'Mus musculus', '#E64B35', '../data/atac/mouse_mm10', 'wtmice'),
+    ('Rat', 'Rat', 'Rattus norvegicus', '#8491B4', '../data/atac/rat', 'Rat'),
+    ('Macaque', 'Rhesus macaque', 'Macaca mulatta', '#DC0000', '../data/atac/macaque', 'SRR'),
+    ('Rabbit', 'Eastern cottontail', 'Sylvilagus floridanus', '#7E6148', '../data/atac/Rabbit', 'CTR'),
+    ('ASM', 'African spiny mouse', 'Acomys cahirinus', '#91D1C2', '../data/atac/Africa_spiny_mouse', 'ASM'),
 ]
 MODEL_INDEX = {'Mouse': 'Mouse_mm10'}
 EXCLUDED_SAMPLES = {'NMR1Liver'}
@@ -166,8 +167,8 @@ def get_panel(sid, gene, window, pan, sample, bins=700):
             peaks = [dict(start=a, end=b) for a,b in rows[first:last] if b >= lo]
     return dict(id=sid, chrom=hit['chrom'], **{'from':lo, 'to':hi}, strand=strand,
                 tss=hit['tss'], tssTranscript=hit.get('transcript'), tssMethod=hit.get('tssMethod'), centre=centre, sample=sample, signalUnit='scaled' if sid == 'Human' else 'CPM', ambiguous=len(hits)>1,
-                signal=signal, hic=human_hic.query(hit['chrom'],lo,hi) if sid=='Human' else None, models=sorted(selected.values(), key=lambda m: (m['gname'].upper() != gene, -(m['end']-m['start'])))[:5], modelCount=len(selected), peaks=peaks,
-                abc=abc_tracks.query(hit['chrom'],lo,hi) if sid=='NMR' else None, microc=microc.query(sample,hit['chrom'],lo,hi) if sid=='NMR' else None, peakAvailable=peak_data is not None, peakWarning=peak_warning, ccre=ccre.query(hit['chrom'],lo,hi) if sid=='Human' else None, chipTracks=chipseq.query(hit['chrom'],lo,hi,sid), teRepeats=repeats.query(hit['chrom'],lo,min(hi,chrom_size)) if sid=='NMR' else None)
+                signal=signal, hic=(human_hic.query(hit['chrom'],lo,hi) if sid=='Human' else nmr_hic.query(hit['chrom'],lo,hi) if sid=='NMR' else None), models=sorted(selected.values(), key=lambda m: (m['gname'].upper() != gene, -(m['end']-m['start']))), modelCount=len(selected), peaks=peaks,
+                microc=microc.query(sample,hit['chrom'],lo,hi) if sid=='NMR' else None, peakAvailable=peak_data is not None, peakWarning=peak_warning, ccre=ccre.query(hit['chrom'],lo,hi) if sid=='Human' else None, chipTracks=chipseq.query(hit['chrom'],lo,hi,sid), teRepeats=repeats.query(hit['chrom'],lo,min(hi,chrom_size)) if sid=='NMR' else None)
 
 
 def browse(req):
@@ -278,7 +279,7 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(url.query).get('q', [''])[0].upper()
             keys = set().union(*(g.keys() for g in GENES.values()))
             return self.send(200, dict(choices=[annotation_counts(k) for k in sorted(k for k in keys if k.startswith(q))[:30]], match=annotation_counts(q)))
-        files = {'/statistics.js':('statistics.js','text/javascript'), '/omics.js':('omics.js','text/javascript'), '/ur-logo.svg':('ur-logo.svg','image/svg+xml'), '/':('index.html','text/html; charset=utf-8'), '/style.css':('style.css','text/css'), '/browser.js':('browser.js','text/javascript')}
+        files = {'/gene_layout.js':('gene_layout.js','text/javascript'), '/statistics.js':('statistics.js','text/javascript'), '/omics.js':('omics.js','text/javascript'), '/ur-logo.svg':('ur-logo.svg','image/svg+xml'), '/':('index.html','text/html; charset=utf-8'), '/style.css':('style.css','text/css'), '/browser.js':('browser.js','text/javascript')}
         if url.path not in files:
             return self.send(404, {'error':'Not found'})
         name, mime = files[url.path]

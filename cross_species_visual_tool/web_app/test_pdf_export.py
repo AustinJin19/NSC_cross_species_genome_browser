@@ -22,7 +22,7 @@ class PDFExport(unittest.TestCase):
         self.assertIn('UPSTATE NATHAN SHOCK CENTER',text)
 
     def test_tall_panels_and_last_page(self):
-        panels=[dict(name=f'Species {i}',sample=f'replicate-{i}',svg=SVG.replace('900 179','900 310')) for i in range(9)]
+        panels=[dict(name=f'Species {i}',sample=f'replicate-{i}',svg=SVG.replace('900 179','900 5000')) for i in range(9)]
         reader=PdfReader(io.BytesIO(export_pdf(dict(gene='SOX2',ruler=SVG,panels=panels))))
         self.assertEqual(len(reader.pages),3)
         self.assertEqual([p.extract_text().count('replicate-') for p in reader.pages],[4,4,1])
@@ -30,6 +30,11 @@ class PDFExport(unittest.TestCase):
     def test_rejects_external_svg_content(self):
         for svg in ['<!DOCTYPE svg><svg/>', '<svg><image href="https://example.com"/></svg>', '<svg><script/></svg>']:
             with self.assertRaises(ValueError): safe_drawing(svg)
+
+    def test_spaced_gene_labels_export(self):
+        svg = SVG.replace('font-size="8"', 'font-size="8" data-gene="APOE" textLength="40" lengthAdjust="spacingAndGlyphs"')
+        reader = PdfReader(io.BytesIO(export_pdf({'ruler': SVG, 'panels': [{'name': 'Human', 'svg': svg}]})))
+        self.assertIn('0.00-0.500 CPM', reader.pages[0].extract_text())
 
     def test_empty_view_rejected(self):
         with self.assertRaises(ValueError): export_pdf({'panels':[]})

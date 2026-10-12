@@ -227,3 +227,13 @@ are gray. The heatmap can be toggled and is included in the track PDF.
 
 See the repository-level README and `docs/CODE_SUMMARY.md` for the current
 architecture and source-only GitHub distribution requirements.
+
+### NMR hypothalamus Hi-C
+
+The NMR Hi-C heatmap replaces the former ABC test track and reads
+`data/interactions/nmr_microc/NMR_hypothalamus_merged.mcool` on mHetGlaV3.
+This hypothalamus matrix is shared across the NMR replicate panels; it is not
+liver-matched data. The browser selects among the supplied 5 kb–1 Mb resolutions
+to keep regional queries bounded, uses balancing weights when available, and
+preserves masked bins. Toggle it independently using **NMR Hi-C heatmap**.
+The existing predicted Micro-C loops and human Hi-C heatmap remain separate.

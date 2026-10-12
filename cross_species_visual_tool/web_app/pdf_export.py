@@ -22,19 +22,19 @@ def safe_drawing(svg):
     tags = {'svg', 'line', 'text', 'polygon', 'rect', 'path'}
     attrs = {'viewBox', 'preserveAspectRatio', 'width', 'height', 'x', 'y', 'x1', 'x2', 'y1', 'y2',
              'd', 'stroke-opacity', 'fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'font-size',
-             'font-family', 'text-anchor', 'points', 'rx', 'role', 'aria-label', 'style'}
+             'font-family', 'text-anchor', 'textLength', 'lengthAdjust', 'data-gene', 'points', 'rx', 'role', 'aria-label', 'style'}
     for element in root.iter():
         if element.tag.split('}')[-1] not in tags:
             raise ValueError('Unsupported SVG element')
         for attr, value in list(element.attrib.items()):
             if attr not in attrs or 'url(' in value.lower() or 'href' in attr.lower():
                 raise ValueError('Unsupported SVG attribute')
-            if attr in {'style', 'role', 'aria-label', 'preserveAspectRatio'}:
+            if attr in {'style', 'role', 'aria-label', 'preserveAspectRatio', 'data-gene'}:
                 del element.attrib[attr]
         if element.text:
             element.text = clean_text(element.text)
     view = [float(v) for v in root.attrib.get('viewBox', '').split()]
-    if len(view) != 4 or not all(math.isfinite(v) for v in view) or not 1 <= view[2] <= 2000 or not 1 <= view[3] <= 2000:
+    if len(view) != 4 or not all(math.isfinite(v) for v in view) or not 1 <= view[2] <= 2000 or not 1 <= view[3] <= 1000000:
         raise ValueError('Invalid SVG dimensions')
     root.set('width', str(view[2])); root.set('height', str(view[3]))
     return svg2rlg(io.BytesIO(ET.tostring(root)))
