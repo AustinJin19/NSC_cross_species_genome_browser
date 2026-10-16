@@ -29,3 +29,4 @@ button:hover{background:#edf4fb}
 .species-order-row{position:relative}.species-drag-handle{cursor:grab;touch-action:none;user-select:none;color:#7c8fa1;font-size:18px;margin-left:-14px;width:10px;flex-shrink:0}.species-order-row.dragging{opacity:.45}.species-order-row.dragging .species-drag-handle{cursor:grabbing}.species-order-row.drop-before:before,.species-order-row.drop-after:after{content:'';position:absolute;left:0;right:0;height:2px;background:#005aa0;pointer-events:none}.species-order-row.drop-before:before{top:-7px}.species-order-row.drop-after:after{bottom:-7px}
 
 .track-plot svg{cursor:grab;touch-action:pan-y;user-select:none}.track-panning,.track-panning .track-plot svg{cursor:grabbing!important}.track-plot{overflow:hidden}
+.omics-controls label.activity-exclusion{flex-direction:row;align-items:center;gap:7px;min-height:32px;font-size:12px;color:var(--ink);cursor:pointer}.activity-exclusion input{margin:0;accent-color:#005aa0}

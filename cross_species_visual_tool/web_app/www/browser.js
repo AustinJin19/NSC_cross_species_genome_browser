@@ -1,6 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const state={catalog:[],species:[],panels:[],nextPanel:1,bins:1000,gene:'HAS2',window:50000,pan:0,data:null,request:0,loading:false};
+const defaultSpecies=new Set(['Human','Mouse','NMR','Balaena_mysticetus','Eptesicus_fuscus']);
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const svgNS='http://www.w3.org/2000/svg';
@@ -15,6 +16,8 @@ function annotationLabel(a){return `${a.gene}: ${a.samples}/${a.totalSamples} sa
 function newPanel(meta,sample){return {key:'panel-'+state.nextPanel++,species:meta.id,sample:sample||meta.default,min:null,max:null};}
 async function load(){
  window.NSCOmics?.show(state.gene);
+ window.NSCActivity?.show(state.gene);
+ window.NSCStrength?.show(state.gene);
  const request=++state.request;state.loading=true;$('tracks').setAttribute('aria-busy','true');tip.hidden=true;$('exportPdf').disabled=true;$('status').textContent='Reading local genomic intervals…';
  try{const data=await json('/api/browse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gene:state.gene,window:state.window,pan:state.pan,bins:state.bins,panels:panelSpec()})});if(request!==state.request)return;state.data=data;state.loading=false;$('tracks').setAttribute('aria-busy','false');render();}
  catch(e){if(request!==state.request)return;state.loading=false;$('tracks').setAttribute('aria-busy','false');state.data=null;$('tracks').replaceChildren();$('ruler').replaceChildren();$('status').textContent=e.message;$('summary').textContent='Query failed';}
@@ -55,7 +58,7 @@ function render(){
   const teClasses=te?te.classes.filter(c=>teMatch(c.name)):[],teRegions=te?te.regions.filter(r=>teMatch(r.repeatClass)):[];
   const loopTrack=$('microc').checked?p.microc:null,loopTop=teTop+(te?20+teClasses.length*7:0);
   const arcTracks=[loopTrack].filter(Boolean);
-  const hic=$(p.id==='NMR'?'nmrHic':'humanHic').checked?p.hic:null,hicTop=loopTop+arcTracks.length*140,hicDepth=700;
+  const hic=$(p.id==='NMR'?'nmrHic':p.id==='Mouse'?'mouseHic':'humanHic').checked?p.hic:null,hicTop=loopTop+arcTracks.length*140,hicDepth=700;
   const geneTop=hicTop+(hic?hicDepth+75:0);
   const height=Math.max(116,geneTop+(geneLayout.rowCount?geneLayout.rowCount*22+4:0));
   const svg=svgEl('svg',{viewBox:`0 0 ${width} ${height}`,preserveAspectRatio:'none',role:'img','aria-label':`${meta.name} ${d.gene} ATAC signal, gene annotations, ATAC peaks, ChIP-seq regions, candidate cis-regulatory elements TE repeats, Micro-C loops and Hi-C heatmap`});svg.style.height=height+'px';plot.append(svg);
@@ -173,7 +176,7 @@ function windowChange(span){state.window=Math.max(1,Math.round(span))/2;$('windo
 $('viewForm').onsubmit=e=>{e.preventDefault();state.bins=Number($('bins').value);windowChange(Number($('window').value)*1000);};
 $('zoomIn').onclick=()=>windowChange(state.window);$('zoomOut').onclick=()=>windowChange(state.window*4);
 $('left').onclick=()=>{state.pan-=Math.round(state.window*.5);load();};$('right').onclick=()=>{state.pan+=Math.round(state.window*.5);load();};$('reset').onclick=()=>{state.pan=0;windowChange(100000);};
-for(const id of ['models','peaks','scale','chipH3K4me3','chipH3K27ac','teRepeats','teType','microc','nmrHic','humanHic','ccre','ccreType'])$(id).onchange=render;
+for(const id of ['models','peaks','scale','chipH3K4me3','chipH3K27ac','teRepeats','teType','microc','nmrHic','mouseHic','humanHic','ccre','ccreType'])$(id).onchange=render;
 $('exportPdf').onclick=async()=>{
  if(!state.data||state.loading)return;
  const button=$('exportPdf');button.disabled=true;button.textContent='Creating PDF…';
@@ -228,5 +231,5 @@ function renderSpecies(){
 (async()=>{try{
  state.catalog=await json('/api/catalog');
  try{const saved=JSON.parse(localStorage.getItem('nscSpeciesOrder')||'[]');if(Array.isArray(saved))state.catalog.sort((a,b)=>(saved.includes(a.id)?saved.indexOf(a.id):saved.length)-(saved.includes(b.id)?saved.indexOf(b.id):saved.length));}catch{}
- state.species=state.catalog.map(s=>s.id);for(const s of state.catalog)state.panels.push(newPanel(s));renderSpecies();await load();
+ state.species=state.catalog.filter(s=>defaultSpecies.has(s.id)).map(s=>s.id);for(const s of state.catalog)state.panels.push(newPanel(s));renderSpecies();await load();
 }catch(e){$('status').textContent=`Could not connect to the Python server: ${e.message}`;}})();

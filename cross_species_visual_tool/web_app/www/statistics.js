@@ -37,6 +37,45 @@ const NSCStatistics = (() => {
   const r=Math.max(-1,Math.min(1,xy/Math.sqrt(xx*yy)));
   return {slope,intercept:my-slope*mx,r,p:pearsonP(r,n)};
  }
- return {linearFit,pearsonP};
+ function lengthAdjustedFit(points){
+  if(points.length<4||points.some(p=>![p.x,p.y,p.lengthKb].every(Number.isFinite)))return null;
+  const n=points.length,mean=k=>points.reduce((s,p)=>s+p[k],0)/n;
+  const mx=mean('x'),my=mean('y'),mz=mean('lengthKb');
+  let zz=0,xz=0,yz=0,xx=0,yy=0;
+  for(const p of points){const x=p.x-mx,y=p.y-my,z=p.lengthKb-mz;zz+=z*z;xz+=x*z;yz+=y*z;xx+=x*x;yy+=y*y;}
+  if(zz<=0||xx<=0||yy<=0)return null;
+  const residuals=points.map(p=>({x:p.x-mx-xz/zz*(p.lengthKb-mz),y:p.y-my-yz/zz*(p.lengthKb-mz)}));
+  const rx=residuals.reduce((s,p)=>s+p.x*p.x,0),ry=residuals.reduce((s,p)=>s+p.y*p.y,0);
+  if(rx<=1e-12*xx||ry<=1e-12*yy)return null;
+  const fit=linearFit(residuals);if(!fit)return null;
+  const lengthSlope=(yz-fit.slope*xz)/zz;
+  // Partial-correlation t test has n - 3 degrees of freedom.
+  return {...fit,p:pearsonP(fit.r,n-1),intercept:my-fit.slope*mx,lengthSlope,
+   modelIntercept:my-fit.slope*mx-lengthSlope*mz,meanLengthKb:mz,df:n-3};
+ }
+ function logLengthAdjustedFit(points){
+  if(points.length<5||points.some(p=>!Number.isFinite(p.lengthKb)||p.lengthKb<=0))return null;
+  return lengthAdjustedFit(points.map(p=>({...p,lengthKb:Math.log10(p.lengthKb)})));
+ }
+ function lengthMassAdjustedFit(points){
+  const n=points.length;
+  if(n<5||points.some(p=>![p.x,p.y,p.lengthKb,p.logMass].every(Number.isFinite)))return null;
+  const mean=k=>points.reduce((a,p)=>a+p[k],0)/n;
+  const mx=mean('x'),my=mean('y'),mz=mean('lengthKb'),mw=mean('logMass');
+  const z=points.map(p=>p.lengthKb-mz),w=points.map(p=>p.logMass-mw);
+  const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0),zz=dot(z,z),ww=dot(w,w),zw=dot(z,w);
+  if(zz<=0||ww<=0)return null;
+  const u=w.map((v,i)=>v-zw/zz*z[i]),uu=dot(u,u);
+  if(uu<=1e-12*ww)return null;
+  const residual=k=>{const v=points.map(p=>p[k]-mean(k)),a=dot(v,z)/zz,b=dot(v,u)/uu;return v.map((x,i)=>x-a*z[i]-b*u[i]);};
+  const x=residual('x'),y=residual('y');
+  if(dot(x,x)<=1e-12*points.reduce((s,p)=>s+(p.x-mx)**2,0)||dot(y,y)<=1e-12*points.reduce((s,p)=>s+(p.y-my)**2,0))return null;
+  const fit=linearFit(x.map((v,i)=>({x:v,y:y[i]})));if(!fit)return null;
+  const v=points.map(p=>p.y-my-fit.slope*(p.x-mx)),massSlope=dot(v,u)/uu;
+  const lengthSlope=(dot(v,z)-massSlope*zw)/zz;
+  return {...fit,p:pearsonP(fit.r,n-2),df:n-4,intercept:my-fit.slope*mx,lengthSlope,massSlope,
+   modelIntercept:my-fit.slope*mx-lengthSlope*mz-massSlope*mw};
+ }
+ return {linearFit,pearsonP,lengthAdjustedFit,logLengthAdjustedFit,lengthMassAdjustedFit};
 })();
 if(typeof module!=='undefined')module.exports=NSCStatistics;
