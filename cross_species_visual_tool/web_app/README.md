@@ -34,7 +34,7 @@ working directory. Use `--port 8766` to choose another port. It binds only to
 Paths are resolved relative to this project, without the stale absolute paths in
 its original R config. The backend reads existing `index/*_models.tsv.gz` files
 and their tabix indexes with pysam, and local bigWigs with pyBigWig. It does not
-read RDS files or invoke R. NMR1Liver is excluded from the browser catalog; NMR3Liver is the default naked mole-rat sample. Source files are retained.
+read RDS files or invoke R. NMR1Liver is excluded from the browser catalog and its local ATAC files were removed during cleanup; NMR3Liver is the default naked mole-rat sample.
 Replicates are discovered in the mouse, rat, and
 mole_rat_peaks folders; each matching narrowPeak file is loaded on first use.
 The original data and original R application are unchanged.
@@ -160,9 +160,9 @@ extracts bed2gtf gene symbols from transcript IDs, and maps spiny-mouse scaffold
 names using the explicit accession/scaffold pairs in the supplied FASTA headers.
 Index provenance is recorded in adjacent `.json` files. The input files are unchanged.
 
-Spiny-mouse peak calls are disabled: the supplied narrowPeak files use CM057
-chromosomes, whereas its bigWigs and mapped annotation use JAULSH scaffolds.
-A compatible peak file or validated coordinate conversion is required to enable them.
+Spiny-mouse peak calls use corrected narrowPeak files in
+`data/atac/liver_atac_bundle/Acomys_cahirinus/`, matching the JAULSH scaffolds in
+its bigWigs and annotation. The old incompatible CM057 peak files were removed.
 RNA/protein measurements retain their existing workbook sources; adding ATAC
 species does not create missing RNA/protein observations.
 

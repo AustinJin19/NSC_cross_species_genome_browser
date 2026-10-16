@@ -12,6 +12,20 @@ INDEX=ROOT/'cross_species_visual_tool/index'
 EXISTING={'Homo_sapiens','Heterocephalus_glaber','Nannospalax_galili','Fukomys_damarensis','Mus_musculus','Rattus_norvegicus','Macaca_mulatta','Sylvilagus_floridanus','Acomys_cahirinus'}
 NAMES={'Hydrochoerus_hydrochaeris':'Capybara','Eonycteris_spelaea':'Cave nectar bat','Myocastor_coypus':'Nutria','Balaena_mysticetus':'Bowhead whale','Artibeus_jamaicensis':'Jamaican fruit bat','Castor_canadensis':'North American beaver','Cricetulus_griseus':'Chinese hamster','Chinchilla_lanigera':'Chinchilla','Octodon_degus':'Degu','Eptesicus_fuscus':'Big brown bat','Sciurus_niger':'Fox squirrel','Meriones_unguiculatus':'Mongolian gerbil','Mesocricetus_auratus':'Golden hamster','Molossus_molossus':'Pallas’s mastiff bat','Erethizon_dorsatum':'North American porcupine','Tamiasciurus_hudsonicus':'American red squirrel','Marmota_monax':'Woodchuck','Peromyscus_maniculatus':'Deer mouse','Microtus_pennsylvanicus':'Meadow vole','Cavia_porcellus':'Guinea pig','Sciurus_carolinensis':'Eastern gray squirrel'}
 COLORS=['#E64B35','#4DBBD5','#00A087','#3C5488','#F39B7F','#8491B4','#91D1C2','#DC0000','#7E6148','#B09C85']
+def local_track_path(source, target, overrides):
+    """Keep consolidated paths and deliberately removed samples on re-import."""
+    relative = str(target.relative_to(ROOT))
+    if relative in overrides:
+        retained = overrides[relative]
+        if retained is None:
+            return '-'
+        path = (ROOT / retained).resolve()
+        if ROOT.resolve() not in path.parents or not path.is_file():
+            raise ValueError('Missing or invalid retained bundle input: ' + retained)
+        return retained
+    move(source, target)
+    return relative if target.exists() else '-'
+
 def move(src,dst):
     dst.parent.mkdir(parents=True,exist_ok=True)
     if src.exists():
@@ -61,6 +75,8 @@ def build(sp,ref,trackdir):
     return {'transcripts':len(rows),'genes':len({r[4].upper() for r in rows}),'unsupported_features':skipped,'samples':len(tracks)}
 def main():
     records=list(csv.DictReader((BUNDLE/'manifest.tsv').open(),delimiter='\t'));groups=defaultdict(list)
+    override_path=BUNDLE/'path_overrides.json'
+    overrides=json.loads(override_path.read_text()) if override_path.exists() else {}
     local=[]
     for r in records:groups[r['species']].append(r)
     specs=[];report=[]
@@ -71,11 +87,11 @@ def main():
             item=dict(r)
             for key,folder in [('bigwig','bigwig'),('narrowPeak','peaks')]:
                 if r[key]!='-':
-                    name=Path(r[key]).name;move(BUNDLE/folder/name,tracks/name)
-                    item[key]=str((tracks/name).relative_to(ROOT)) if (tracks/name).exists() else '-'
+                    name=Path(r[key]).name
+                    item[key]=local_track_path(BUNDLE/folder/name,tracks/name,overrides)
             item['fasta']=str((ref/(sp+'.fa.gz')).relative_to(ROOT));item['gtf']=str((ref/(sp+'.gtf.gz')).relative_to(ROOT));local.append(item)
         status={'species':sp}
-        if sp in EXISTING:status['status']='existing browser tracks preserved; bundle archived separately'
+        if sp in EXISTING:status['status']='existing browser sources retained; see manifest.local.tsv for consolidated paths'
         elif not list(tracks.glob('*.bw')):status['status']='not added: no bigWig signal supplied'
         else:
             try:
