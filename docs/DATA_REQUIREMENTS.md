@@ -98,7 +98,7 @@ These inputs add features but are not required for the basic ATAC browser to sta
 
 Place `<sample>_peaks.narrowPeak` or `<sample>_peaks.narrowPeak.gz` beside the matching bigWig. Example: `NMR3Liver.cpm.bw` pairs with `NMR3Liver_peaks.narrowPeak`.
 
-Use standard narrowPeak data with no header. The browser reads the first three tab-separated columns: chromosome, zero-based start, exclusive end. It counts overlapping intervals; it does not call new peaks. ASM peaks are currently disabled because the supplied peak coordinates do not match the signal assembly.
+Use standard narrowPeak data with no header. The browser reads the first three tab-separated columns: chromosome, zero-based start, exclusive end. It counts overlapping intervals; it does not call new peaks. ASM uses corrected peaks in `data/atac/liver_atac_bundle/Acomys_cahirinus/`, matching its JAULSH signal assembly. The old incompatible ASM peaks were removed.
 
 ### ChIP-seq regions
 

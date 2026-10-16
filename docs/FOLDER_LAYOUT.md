@@ -7,7 +7,9 @@ The local dataset was reorganized by data type on 2026-10-10. Files were moved, 
 | `reference_genomes/` | FASTA genomes, matching `.fai` indexes, GTF annotations and `.tbi` indexes, grouped by species; hg19 chromosome sizes |
 | `data/atac/` | ATAC bigWigs and matching peak calls, grouped by species |
 | `data/atac/mouse_legacy/` | Preserved older mouse assembly data; the browser continues to use `mouse_mm10/` |
-| `data/atac/mole_rat_peaks/` | NMR, BMR, and DMR samples; NMR1 is preserved on disk but excluded from the browser |
+| `data/atac/mole_rat_peaks/` | Active NMR, BMR, and DMR samples; excluded NMR1 inputs were removed on 2026-10-16 |
+| `data/atac/liver_atac_bundle/` | Additional species' ATAC tracks and corrected ASM peaks; identical copies of original tracks were removed |
+| `data/liver_atac_bundle/` | Source/local manifests, validation reports and consolidated-path overrides |
 | `data/chipseq/mhetglav3/` | NMR H3K4me3 and H3K27ac regions |
 | `data/chipseq/ChIP_seq/` | Public histone peaks and their self-contained liftover pipeline, chains, results, and provenance |
 | `data/interactions/human_hic/` | Human hg38 `.mcool` matrix (active); original `.hic` retained as an archive |
