@@ -237,3 +237,18 @@ liver-matched data. The browser selects among the supplied 5 kb–1 Mb resolutio
 to keep regional queries bounded, uses balancing weights when available, and
 preserves masked bins. Toggle it independently using **NMR Hi-C heatmap**.
 The existing predicted Micro-C loops and human Hi-C heatmap remain separate.
+
+### Mouse liver ZT10 Hi-C
+
+The mouse mm10 panels read
+`data/interactions/mouse_hic/mouse_liver_ZT10_merged.mcool`.
+Enable **Mouse Hi-C heatmap** to show the merged liver ZT10 matrix beneath
+the other mouse annotations. The same matrix is used for each mouse ATAC
+replicate; it is not a replicate-specific contact map. The heatmap uses the
+shared reader, stored balancing weights, automatic 5 kb–1 Mb resolution,
+masked-bin handling, and 700 px depth. It is included in PDF exports.
+The mcool data file must be copied separately when deploying the code.
+
+## Gene and regulatory activity
+
+The browser includes separate gene-activity and regulatory-activity panels with MLS correlations. Regulatory activity offers peak count and CPM signal integrated only within peaks for TSS ±20/50/100/200/500 kb windows. See [GENE_ACTIVITY.md](GENE_ACTIVITY.md) for definitions, covariates, required generated files, and deployment steps. Hi-C heatmaps are off by default and can be enabled in Track display.

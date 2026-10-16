@@ -13,7 +13,7 @@ class GenomicQueries(unittest.TestCase):
 
     def test_all_species_and_peak_overlap(self):
         result = server.browse({'gene':'has2'})
-        self.assertEqual(len(result['panels']), 9)
+        self.assertEqual(len(result['panels']), len(server.CATALOG))
         for p in result['panels']:
             self.assertNotIn('error', p)
             self.assertTrue(any((s['value'] or 0) > 0 for s in p['signal']))
