@@ -7,6 +7,8 @@ import numpy as np
 import pyBigWig
 
 from regulatory_strength import peak_arrays
+from region_availability import annotate_region
+from sample_qc import filter_records
 
 
 @lru_cache(maxsize=128)
@@ -64,7 +66,7 @@ def score_records(records, flank):
     root = Path(__file__).resolve().parent.parent
     folders = {s[0]: root / s[4] for s in SPECS}
     result = []
-    for original in records:
+    for original in filter_records(records):
         row = dict(original)
         chrom, span, strand = row['locus'].rsplit('|', 1)[1].rsplit(':', 2)
         a, b = map(int, span.split('-'))
@@ -83,8 +85,9 @@ def score_records(records, flank):
                 str(bw), bs.st_size, bs.st_mtime_ns, str(bed), ps.st_size, ps.st_mtime_ns,
                 chrom, tss - flank, tss + flank)
         valid = [v for v in samples.values() if v is not None]
-        # Preserve source units: human tracks are scaled signal, not CPM.
+        # Preserve the units supplied by the active sample files.
         row.update(samples=samples, median=statistics.median(valid) if valid else None,
                    window_details=details, region_start=tss-flank, region_end=tss+flank)
+        annotate_region(row, chrom, tss-flank, tss+flank, folders[row['species']])
         result.append(row)
     return result

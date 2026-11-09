@@ -21,9 +21,34 @@ The two corrected ASM peak files remain in the bundle directory; the incompatibl
 old ASM peaks were removed. NMR1 signal and peak files were removed because that
 sample is excluded; its local manifest entries are `-`. The source manifest and
 original validation reports remain historical records.
-Four species have no supplied bigWig and are not added:
-Cricetomys gambianus, Scalopus aquaticus, Ondatra zibethicus, Tamias striatus.
-Their reference and peak files are retained.
+The 2026-10-19 download completes three previously pending species:
+
+| Species | Samples with signal and peaks |
+|---|---|
+| Eastern mole (*Scalopus aquaticus*) | EM1Liver, EM2Liver |
+| Muskrat (*Ondatra zibethicus*) | K11Liver, K13Liver |
+| Eastern chipmunk (*Tamias striatus*) | I7Liver, I8Liver, I9Liver |
+
+The active browser now has **34 species and 88 samples**. K12Liver has peaks but
+no bigWig and is not included as a signal/activity sample. The source manifest
+still records the original missing bigWigs; the importer discovers later downloads
+in the species folders when regenerating `manifest.local.tsv`.
+
+Seven usable new bigWigs match the supplied FASTA sequence names and lengths; new
+peaks and transcript coordinates were validated against those references.
+Identical reference and peak downloads were consolidated using SHA-256 checks.
+The chipmunk's new peaks use the reference's `ptg` contigs. Its incompatible older
+`scaffold_*.H2` peaks were moved to `archives/superseded_2026-10-19/Tamias_striatus/`.
+The file audit and import validation are in `output/species_import_2026-10-19/`.
+
+All three species are registered for gene activity, peak counts, and peak-restricted
+CPM signal. MLS/body-mass values retain the supplied table (mole, muskrat, chipmunk).
+
+The extra Gambian pouched rat (*Cricetomys gambianus*) download is organized but
+**not activated**: `AGP1Liver.cpm.bw` contains chromosome headers but no signal
+records (`nBasesCovered=0`, `sumData=0`). This is missing data, not biological zero.
+Replace it with a complete bigWig before importing that species. The importer now
+rejects header-only bigWigs. Its reference, peaks, and AnAge trait metadata are retained.
 
 Copy `path_overrides.json` with the other bundle metadata when deploying. The
 importer honors these mappings so re-importing does not replace retained paths

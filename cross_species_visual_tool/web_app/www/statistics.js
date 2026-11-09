@@ -57,6 +57,13 @@ const NSCStatistics = (() => {
   if(points.length<5||points.some(p=>!Number.isFinite(p.lengthKb)||p.lengthKb<=0))return null;
   return lengthAdjustedFit(points.map(p=>({...p,lengthKb:Math.log10(p.lengthKb)})));
  }
+ function massAdjustedFit(points){
+  // The single-covariate solver residualizes both x and y against log10 mass.
+  const fit=lengthAdjustedFit(points.map(p=>({...p,lengthKb:p.logMass})));
+  if(!fit)return null;
+  const {lengthSlope:massSlope,meanLengthKb:meanLogMass,...rest}=fit;
+  return {...rest,massSlope,meanLogMass};
+ }
  function lengthMassAdjustedFit(points){
   const n=points.length;
   if(n<5||points.some(p=>![p.x,p.y,p.lengthKb,p.logMass].every(Number.isFinite)))return null;
@@ -76,6 +83,10 @@ const NSCStatistics = (() => {
   return {...fit,p:pearsonP(fit.r,n-2),df:n-4,intercept:my-fit.slope*mx,lengthSlope,massSlope,
    modelIntercept:my-fit.slope*mx-lengthSlope*mz-massSlope*mw};
  }
- return {linearFit,pearsonP,lengthAdjustedFit,logLengthAdjustedFit,lengthMassAdjustedFit};
+ function logLengthMassAdjustedFit(points){
+  if(points.some(p=>!Number.isFinite(p.lengthKb)||p.lengthKb<=0))return null;
+  return lengthMassAdjustedFit(points.map(p=>({...p,lengthKb:Math.log10(p.lengthKb)})));
+ }
+ return {linearFit,pearsonP,lengthAdjustedFit,logLengthAdjustedFit,massAdjustedFit,lengthMassAdjustedFit,logLengthMassAdjustedFit};
 })();
 if(typeof module!=='undefined')module.exports=NSCStatistics;

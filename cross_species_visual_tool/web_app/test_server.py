@@ -20,7 +20,7 @@ class GenomicQueries(unittest.TestCase):
             self.assertTrue(all(peak['start'] <= p['to'] and peak['end'] >= p['from'] for peak in p['peaks']))
 
     def test_added_assemblies_and_sample_coordinates(self):
-        expected = {'Human': ('selected3', 'chr12', 3), 'Mouse': ('mouse_mm10', 'chr10', 3),
+        expected = {'Human': ('Homo_sapiens', 'chr12', 4), 'Mouse': ('mouse_mm10', 'chr10', 3),
                     'Macaque': ('macaque', 'NC_133416.1', 4),
                     'Rabbit': ('Rabbit', 'OX463231.1', 2),
                     'ASM': ('Africa_spiny_mouse', 'JAULSH010000016.1', 2)}
@@ -35,14 +35,13 @@ class GenomicQueries(unittest.TestCase):
                 if p['strand'] == '-': raw = raw[::-1]
                 np.testing.assert_allclose([s['value'] for s in p['signal']], raw)
                 self.assertEqual(p['models'][0]['gname'].upper(), 'IGF1')
-                self.assertEqual(p['peakAvailable'], sid != 'ASM')
-                self.assertEqual(p['signalUnit'], 'scaled' if sid == 'Human' else 'CPM')
-                if sid == 'ASM':
-                    self.assertIn('assembly', p['peakWarning'])
-                    self.assertEqual(p['peaks'], [])
+                self.assertTrue(server.peak_path(path).is_file())
+                self.assertTrue(p['peakAvailable'])
+                self.assertIsNone(p.get('peakWarning'))
+                self.assertEqual(p['signalUnit'], 'CPM')
 
     def test_human_mane_tss_and_displayed_transcript(self):
-        p = server.get_panel('Human','ALDH1A2',5000,0,'122',101)
+        p = server.get_panel('Human','ALDH1A2',5000,0,'SRR28763586',101)
         self.assertEqual(p['strand'], '-')
         self.assertEqual(p['tss'], 58065711)
         self.assertEqual(p['centre'], 58065711)
@@ -109,12 +108,13 @@ class GenomicQueries(unittest.TestCase):
 
     def test_annotation_counts_do_not_depend_on_visible_panels(self):
         counts = server.browse({'panels':[]})['annotation']
-        self.assertEqual(counts['species'],9)
-        self.assertEqual(counts['samples'],26)
+        self.assertEqual(counts['species'],34)
+        self.assertEqual(counts['samples'],89)
+        self.assertEqual(server.browse({'species':['Mouse']})['annotation'], counts)
         self.assertEqual(server.annotation_counts('not_a_gene')['samples'],0)
         tp53 = server.annotation_counts('TP53')
-        self.assertEqual(tp53['species'],5)
-        self.assertEqual(tp53['samples'],16)
+        self.assertEqual(tp53['species'],33)
+        self.assertEqual(tp53['samples'],86)
 
     def test_invalid_bins_and_duplicate_keys(self):
         for bins in [0,9,5001]:

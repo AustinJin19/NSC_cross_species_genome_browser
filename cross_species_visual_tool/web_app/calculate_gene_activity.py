@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / '.deps'))
 import numpy as np
 import pyBigWig
-from server import SPECS, MODEL_INDEX, EXCLUDED_SAMPLES, resolve_chrom
+from server import SPECS, MODEL_INDEX, EXCLUDED_SAMPLES, resolve_chrom, activity_unit
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -160,9 +160,14 @@ def main():
                          if p.name.lower().startswith(prefix.lower()) and
                          p.stem.removesuffix('.cpm').removesuffix('_scaled') not in EXCLUDED_SAMPLES)
         if not samples:
-            raise RuntimeError(f'No samples for {sid}')
+            available = [p for p in (ROOT/'cross_species_visual_tool'/folder).glob('*.bw')
+                         if p.name.lower().startswith(prefix.lower())]
+            if not available:
+                raise RuntimeError(f'No samples for {sid}')
+            print(f'{sid}: skipped; all samples excluded by QC', flush=True)
+            continue
         scores = []
-        unit = 'source_scaled_signal_bp' if sid == 'Human' else 'CPM_signal_bp'
+        unit = activity_unit(samples)
         with gzip.open(args.output/f'{sid}_gene_activity_long.tsv.gz', 'wt') as handle:
             writer = csv.writer(handle, delimiter='\t')
             writer.writerow(['species','sample',*rows[0].keys(),'signal_sum','signal_mean_per_bp',

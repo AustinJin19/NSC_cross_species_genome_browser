@@ -9,6 +9,9 @@ from functools import lru_cache
 from collections import Counter
 from contextlib import closing
 from pathlib import Path
+from region_availability import annotate_region, body_region, MIN_AVAILABLE_FRACTION
+from sample_qc import filter_records
+import gene_names
 
 DB = Path(__file__).resolve().parent / 'data/gene_activity.sqlite'
 DEFAULT_SOURCE = Path(__file__).resolve().parents[2] / 'output/gene_activity_signac_regions'
@@ -52,12 +55,15 @@ def query(gene, strategy="body"):
         raise ValueError('Gene activity index is missing. Run python activity.py to build it from calculated scores.')
     with closing(sqlite3.connect(f'file:{db}?mode=ro', uri=True)) as con:
         con.row_factory = sqlite3.Row
-        records = [dict(r) for r in con.execute('SELECT * FROM activity WHERE symbol_key=? ORDER BY species,locus', (gene,))]
+        symbols = gene_names.candidates(gene)
+        placeholders = ','.join('?' for _ in symbols)
+        records = [dict(r) for r in con.execute(f'SELECT * FROM activity WHERE symbol_key IN ({placeholders}) ORDER BY species,locus', symbols)]
         if con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='activity_additions'").fetchone():
-            records += [dict(r) for r in con.execute('SELECT * FROM activity_additions WHERE symbol_key=? ORDER BY species,locus', (gene,))]
+            records += [dict(r) for r in con.execute(f'SELECT * FROM activity_additions WHERE symbol_key IN ({placeholders}) ORDER BY species,locus', symbols)]
+    records, matches = gene_names.match_records(gene, records)
+    records = filter_records(refresh_sample_sources(records))
     counts = Counter(r['species'] for r in records)
     for row in records:
-        row['samples'] = json.loads(row['samples'])
         row['ambiguous'] = counts[row['species']] > 1
     if strategy in PEAK_SIGNAL_WINDOWS:
         from peak_activity import score_records
@@ -69,14 +75,45 @@ def query(gene, strategy="body"):
         flank = {'tss2kb':2000, 'tss5kb':5000, 'tss100kb':100000, 'tss200kb':200000, 'tss500kb':500000}[strategy]
         records = tss_records(records, db.stat().st_mtime_ns, flank)
     else:
+        from server import SPECS
+        folders = {s[0]: Path(__file__).resolve().parent.parent/s[4] for s in SPECS}
         for row in records:
+            chrom, start, end = body_region(row['locus'])
             if row.pop('on_demand', False):
-                chrom, span, strand = row['locus'].rsplit('|',1)[1].rsplit(':',2)
-                start, end = map(int,span.split('-'))
-                start, end = (start-2000,end) if strand=='+' else (start,end+2000)
                 score_record(row, chrom, start, end, db.stat().st_mtime_ns)
+            annotate_region(row, chrom, start, end, folders[row['species']])
     lifespans = json.loads((DB.parent / 'species_mls.json').read_text())
-    return dict(gene=gene, strategy=strategy, records=records, lifespans=lifespans)
+    return dict(gene=gene_names.canonical(gene), requested_gene=gene, gene_matches=matches, strategy=strategy, records=records, lifespans=lifespans,
+                minimum_available_fraction=MIN_AVAILABLE_FRACTION)
+
+
+def refresh_sample_sources(records):
+    """Use current catalog samples when a stored matrix describes an older set.
+
+    Keep the historical database intact. Replaced/added samples are quantified
+    on demand; never reuse or relabel scores from a retired source file.
+    """
+    from server import SPECS, ROOT, activity_unit
+    from sample_qc import EXCLUDED_SAMPLES, sample_id
+    present = {r['species'] for r in records}
+    sources = {sid: sorted(p for p in (ROOT / folder).glob('*.bw')
+                           if p.name.lower().startswith(prefix.lower())
+                           and sample_id(p) not in EXCLUDED_SAMPLES)
+               for sid, _, _, _, folder, prefix in SPECS if sid in present}
+    result = []
+    for original in records:
+        row = dict(original)
+        if row['species'] in sources:
+            paths = sources[row['species']]
+            samples = json.loads(row['samples']) if isinstance(row['samples'], str) else row['samples']
+            retained = {s for s in samples if sample_id(s) not in EXCLUDED_SAMPLES}
+            if retained != {p.stem for p in paths}:
+                row.update(samples={p.stem: None for p in paths}, median=None, on_demand=True)
+                if paths:
+                    row['unit'] = activity_unit(paths)
+                row.pop('window_details', None)
+        result.append(row)
+    return result
 
 
 def score_record(row, chrom, start, end, version):
@@ -132,10 +169,10 @@ def register_additional_species():
 
 
 def tss_records(records, version, flank=200000):
-    from calculate_gene_activity import ROOT, SPECS
-    folders = {s[0]: ROOT/'cross_species_visual_tool'/s[4] for s in SPECS}
+    from server import ROOT, SPECS
+    folders = {s[0]: ROOT/s[4] for s in SPECS}
     result = []
-    for original in records:
+    for original in filter_records(records):
         row = dict(original)
         chrom, span, strand = row['locus'].rsplit('|',1)[1].rsplit(':',2)
         start, end = map(int,span.split('-'))
@@ -154,6 +191,7 @@ def tss_records(records, version, flank=200000):
         valid = [v for v in samples.values() if v is not None]
         row.update(samples=samples, median=statistics.median(valid) if valid else None,
                    region_start=tss-flank,region_end=tss+flank,window_details=details)
+        annotate_region(row, chrom, tss-flank, tss+flank, folders[row['species']])
         result.append(row)
     return result
 

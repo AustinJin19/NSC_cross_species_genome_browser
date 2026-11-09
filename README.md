@@ -2,18 +2,21 @@
 
 A Python-backed comparative genome browser for local ATAC-seq data, regulatory annotations, chromatin interactions, and liver RNA/protein measurements. The interface uses plain HTML, CSS, JavaScript, and SVG: no R runtime, Node build step, or cloud service is required.
 
-The current local dataset contains nine species and 26 ATAC samples: human, naked mole-rat, blind mole-rat, Damaraland mole-rat, mouse (mm10), rat, rhesus macaque, eastern cottontail, and African spiny mouse. The separate 35-species research strategies are proposals, not models implemented by this browser.
+The current local dataset contains 34 species and 89 ATAC samples. The repository includes the browser, analysis scripts, and a cluster workflow for ATAC-defined candidate super-enhancers. Experimental datasets and generated results are supplied separately.
 
 ## Features
 
-- Gene-symbol search with annotation availability counts and synchronized TSS-relative views.
+- Gene search with exact symbols, unambiguous aliases and supported ortholog mappings, annotation availability counts, and synchronized TSS-relative views.
 - Drag to pan tracks; drag species to reorder them; add replicate panels.
 - Editable genomic span and signal-bin count, with per-panel or shared signal scales.
 - Gene models, ATAC peaks, H3K4me3/H3K27ac regions, human ENCODE4 cCREs, and NMR TE-class filtering.
 - NMR predicted Micro-C arcs and a separately labeled hypothalamus ABC test track.
 - Human hg38 HepG2 Hi-C heatmap from a local `.mcool` file, automatic resolution, stored-weight balancing when available, and a 700 px heatmap depth.
 - Liver transcriptome/proteome scatter plots against MLS or log10(MLS), with Pearson r, p-value, R², and a linear fit.
-- Vector PDF export with four displayed panels per page, and liver-data CSV export.
+- Gene and regulatory activity versus lifespan, with optional body-mass correction and phylogenetic regression using the supplied TimeTree covariance.
+- Human liver loops, human/mouse dbSUPER tracks, and per-species ATAC candidate super-enhancer shared/union regions.
+- Compact single-page vector PDF export in 16:9, 4:3 or full-height layout, per-species annotation toggles, and liver-data CSV export.
+- Standalone square regulatory-activity plots with black points, red dashed fits, and BH-adjusted P values with and without body-mass correction.
 
 For required inputs, exact file formats, and setup steps, see the [data requirements guide](docs/DATA_REQUIREMENTS.md).
 
@@ -48,6 +51,9 @@ Reference genomes and annotations are in `reference_genomes/`; experimental inpu
 | `pdf_export.py` | Sanitized SVG-to-vector-PDF conversion |
 | `build_*.py`, `mouse_supplement.py` | Local annotation, TE, lifespan, and workbook preprocessing |
 | `test_*.py`, `test_statistics.js` | Backend, data-integration, PDF, and statistical checks |
+| `cross_species_visual_tool/plot_regulatory_mls.R` | Regulatory activity/MLS plots and validation of genome-wide BH testing families |
+| `pipelines/atac_super_enhancers/` | Filtered-BAM ROSE workflow, SLURM launchers, and replicate-supported region summaries |
+| `output/`, `outputs/`, `tmm_pca/` | Analysis source scripts; their experimental inputs and generated results are not included |
 
 ## Verification
 
@@ -62,7 +68,7 @@ Node is only needed for the standalone JavaScript test. Many Python tests requir
 
 ## Interpretation and deployment
 
-Equal TSS-relative positions and matching gene symbols do not establish orthology. Signal values retain source units; shared axes do not normalize species. Predicted Micro-C and ABC links are labeled separately from measured HepG2 Hi-C. Hypothalamus ABC data and HepG2 cell-line data are not matched liver ATAC replicates. Lifespan regressions are exploratory and do not implement PGLS.
+Equal TSS-relative positions and matching gene symbols do not establish orthology. The gene-name resolver distinguishes supported mappings from exact-symbol matches and projected annotations. Signal values retain source units; shared axes do not normalize species. Predicted Micro-C and ABC links are labeled separately from measured Hi-C. Hypothalamus ABC data and HepG2 cell-line data are not matched liver ATAC replicates. Lifespan regressions are exploratory; ordinary and PGLS models are available in the browser. Standalone regulatory plots use ordinary regression.
 
 The server binds to localhost and is intended for local research use. Public hosting would require a separate deployment/security design. Uploading the code to GitHub does not host the Python application or its datasets.
 
@@ -70,6 +76,8 @@ The server binds to localhost and is intended for local research use. Public hos
 
 - [Architecture, data setup, and limitations](docs/CODE_SUMMARY.md)
 - [GitHub upload guide](docs/GITHUB_UPLOAD.md)
+- [Analysis scripts and regulatory plots](docs/ANALYSIS_SCRIPTS.md)
+- [ATAC super-enhancer cluster workflow](pipelines/atac_super_enhancers/README.md)
 - [Two research strategies and shared HALPER + IPP framework](docs/cross_species_project_strategies.md)
 - [HALPER + IPP workflow](docs/HALPER_IPP_regulatory_workflow.md)
 

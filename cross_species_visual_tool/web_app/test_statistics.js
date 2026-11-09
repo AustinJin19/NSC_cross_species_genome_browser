@@ -18,3 +18,23 @@ close(pearsonP(0,10),1);
 close(pearsonP(1,10),0);
 assert.equal(pearsonP(.5,2),null);
 console.log('Pearson p-value checks passed');
+const {massAdjustedFit,logLengthMassAdjustedFit,logLengthAdjustedFit}=require('./www/statistics.js');
+const fixtures=require('./test_mass_fit_fixtures.json');
+for(const test of fixtures.cases){
+ const fit=test.method==='massAdjustedFit'?massAdjustedFit(test.points):logLengthMassAdjustedFit(test.points);
+ assert.ok(fit);
+ for(const [key,expected] of Object.entries(test.expected)){
+  assert.ok(Math.abs(fit[key]-expected)<1e-10,`${test.method} ${key}: ${fit[key]} != ${expected}`);
+ }
+}
+const points=fixtures.cases[0].points;
+assert.equal(massAdjustedFit(points.slice(0,3)),null);
+assert.equal(logLengthMassAdjustedFit(points.slice(0,4)),null);
+assert.equal(massAdjustedFit(points.map(p=>({...p,logMass:2}))),null);
+assert.equal(massAdjustedFit(points.map(p=>({...p,logMass:p.x}))),null);
+assert.equal(logLengthMassAdjustedFit(points.map(p=>({...p,logMass:Math.log10(p.lengthKb)}))),null);
+assert.equal(logLengthMassAdjustedFit(points.map(p=>({...p,lengthKb:0}))),null);
+assert.equal(massAdjustedFit(points.map(p=>({...p,logMass:NaN}))),null);
+// An absent mass is irrelevant when the existing length-only option is used.
+assert.ok(logLengthAdjustedFit(points.map(p=>({...p,logMass:NaN}))));
+console.log('Mass-only and log-length + log-mass fits match independent SciPy/NumPy OLS on raw/log axes; invalid and collinear cases rejected.');

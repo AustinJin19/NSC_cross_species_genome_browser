@@ -6,7 +6,7 @@ from scipy.stats import pearsonr,false_discovery_control
 from activity import DB
 from regulatory_strength import score_records
 from server import SPECS
-ROOT=Path(__file__).resolve().parents[2];OUT=ROOT/'output/regulatory_strength';OUT.mkdir(parents=True,exist_ok=True)
+ROOT=Path(__file__).resolve().parents[2];OUT=ROOT/'output/regulatory_strength_region50';OUT.mkdir(parents=True,exist_ok=True)
 life=json.loads((DB.parent/'species_mls.json').read_text());latin={s[0]:s[2] for s in SPECS}
 con=sqlite3.connect(DB);con.row_factory=sqlite3.Row
 tables={r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
@@ -22,22 +22,22 @@ for flank in [w*1000 for w in args.windows]:
  folder=OUT/f'tss{flank//1000}kb';folder.mkdir(exist_ok=True);genes={};coverage=[]
  for sid in latin:
   rs=score_records([r for r in records if r['species']==sid],flank)
-  write(folder/f'{sid}_locus_scores.tsv',[dict(gene=r['symbol_key'],locus=r['locus'],median=r['median'],samples=json.dumps(r['samples'])) for r in rs],['gene','locus','median','samples'])
-  coverage.append(dict(species=sid,loci=len(rs),scored=sum(r['median'] is not None for r in rs)))
+  write(folder/f'{sid}_locus_scores.tsv',[dict(gene=r['symbol_key'],locus=r['locus'],median=r['median'],samples=json.dumps(r['samples']),available_fraction=r['available_fraction'],region_eligible=r['region_eligible']) for r in rs],['gene','locus','median','samples','available_fraction','region_eligible'])
+  coverage.append(dict(species=sid,loci=len(rs),scored=sum(r['median'] is not None for r in rs),region_eligible=sum(r['region_eligible'] for r in rs)))
   if sid not in ['Human','Macaque','Balaena_mysticetus'] and life.get(latin[sid],{}).get('years'):
    for r in sorted(rs,key=lambda r:r['locus']):
     if r['median'] is None:continue
     old=genes.setdefault(r['symbol_key'],{}).get(sid)
-    if old is None or r['median']>old:genes[r['symbol_key']][sid]=r['median']
+    if old is None or r['median']>old['median']:genes[r['symbol_key']][sid]=r
   print(flank,sid,coverage[-1],flush=True)
- write(folder/'coverage.tsv',coverage,['species','loci','scored'])
+ write(folder/'coverage.tsv',coverage,['species','loci','scored','region_eligible'])
  for scale in ['raw','log10']:
   for axis in ['MLS','log10_MLS']:
    results=[]
    for gene,values in genes.items():
-    ids=sorted(s for s in values if scale=='raw' or values[s]>0)
+    ids=sorted(s for s in values if values[s]['region_eligible'] and (scale=='raw' or values[s]['median']>0))
     if len(ids)<5:continue
-    x=np.array([life[latin[s]]['years'] for s in ids]);y=np.array([values[s] for s in ids]);x=np.log10(x) if axis=='log10_MLS' else x;y=np.log10(y) if scale=='log10' else y
+    x=np.array([life[latin[s]]['years'] for s in ids]);y=np.array([values[s]['median'] for s in ids]);x=np.log10(x) if axis=='log10_MLS' else x;y=np.log10(y) if scale=='log10' else y
     if np.ptp(x)==0 or np.ptp(y)==0:continue
     r,p=pearsonr(x,y);results.append(dict(gene=gene,n_species=len(ids),r=float(r),p_value=float(p),species=','.join(ids)))
    q=false_discovery_control([r['p_value'] for r in results],method='bh')

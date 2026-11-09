@@ -1,0 +1,202 @@
+[
+  [
+    "Hydrochoerus_hydrochaeris",
+    "Capybara",
+    "Hydrochoerus hydrochaeris",
+    "#E64B35",
+    "../data/atac/liver_atac_bundle/Hydrochoerus_hydrochaeris",
+    ""
+  ],
+  [
+    "Eonycteris_spelaea",
+    "Cave nectar bat",
+    "Eonycteris spelaea",
+    "#4DBBD5",
+    "../data/atac/liver_atac_bundle/Eonycteris_spelaea",
+    ""
+  ],
+  [
+    "Myocastor_coypus",
+    "Nutria",
+    "Myocastor coypus",
+    "#00A087",
+    "../data/atac/liver_atac_bundle/Myocastor_coypus",
+    ""
+  ],
+  [
+    "Balaena_mysticetus",
+    "Bowhead whale",
+    "Balaena mysticetus",
+    "#F39B7F",
+    "../data/atac/liver_atac_bundle/Balaena_mysticetus",
+    ""
+  ],
+  [
+    "Artibeus_jamaicensis",
+    "Jamaican fruit bat",
+    "Artibeus jamaicensis",
+    "#91D1C2",
+    "../data/atac/liver_atac_bundle/Artibeus_jamaicensis",
+    ""
+  ],
+  [
+    "Castor_canadensis",
+    "North American beaver",
+    "Castor canadensis",
+    "#7E6148",
+    "../data/atac/liver_atac_bundle/Castor_canadensis",
+    ""
+  ],
+  [
+    "Cricetulus_griseus",
+    "Chinese hamster",
+    "Cricetulus griseus",
+    "#E64B35",
+    "../data/atac/liver_atac_bundle/Cricetulus_griseus",
+    ""
+  ],
+  [
+    "Chinchilla_lanigera",
+    "Chinchilla",
+    "Chinchilla lanigera",
+    "#4DBBD5",
+    "../data/atac/liver_atac_bundle/Chinchilla_lanigera",
+    ""
+  ],
+  [
+    "Octodon_degus",
+    "Degu",
+    "Octodon degus",
+    "#3C5488",
+    "../data/atac/liver_atac_bundle/Octodon_degus",
+    ""
+  ],
+  [
+    "Bramus_lutescens",
+    "Bramus lutescens",
+    "Bramus lutescens",
+    "#F39B7F",
+    "../data/atac/liver_atac_bundle/Bramus_lutescens",
+    ""
+  ],
+  [
+    "Eptesicus_fuscus",
+    "Big brown bat",
+    "Eptesicus fuscus",
+    "#91D1C2",
+    "../data/atac/liver_atac_bundle/Eptesicus_fuscus",
+    ""
+  ],
+  [
+    "Sciurus_niger",
+    "Fox squirrel",
+    "Sciurus niger",
+    "#DC0000",
+    "../data/atac/liver_atac_bundle/Sciurus_niger",
+    ""
+  ],
+  [
+    "Meriones_unguiculatus",
+    "Mongolian gerbil",
+    "Meriones unguiculatus",
+    "#7E6148",
+    "../data/atac/liver_atac_bundle/Meriones_unguiculatus",
+    ""
+  ],
+  [
+    "Mesocricetus_auratus",
+    "Golden hamster",
+    "Mesocricetus auratus",
+    "#B09C85",
+    "../data/atac/liver_atac_bundle/Mesocricetus_auratus",
+    ""
+  ],
+  [
+    "Molossus_molossus",
+    "Pallas\u2019s mastiff bat",
+    "Molossus molossus",
+    "#4DBBD5",
+    "../data/atac/liver_atac_bundle/Molossus_molossus",
+    ""
+  ],
+  [
+    "Erethizon_dorsatum",
+    "North American porcupine",
+    "Erethizon dorsatum",
+    "#3C5488",
+    "../data/atac/liver_atac_bundle/Erethizon_dorsatum",
+    ""
+  ],
+  [
+    "Tamiasciurus_hudsonicus",
+    "American red squirrel",
+    "Tamiasciurus hudsonicus",
+    "#F39B7F",
+    "../data/atac/liver_atac_bundle/Tamiasciurus_hudsonicus",
+    ""
+  ],
+  [
+    "Marmota_monax",
+    "Woodchuck",
+    "Marmota monax",
+    "#91D1C2",
+    "../data/atac/liver_atac_bundle/Marmota_monax",
+    ""
+  ],
+  [
+    "Peromyscus_maniculatus",
+    "Deer mouse",
+    "Peromyscus maniculatus",
+    "#DC0000",
+    "../data/atac/liver_atac_bundle/Peromyscus_maniculatus",
+    ""
+  ],
+  [
+    "Microtus_pennsylvanicus",
+    "Meadow vole",
+    "Microtus pennsylvanicus",
+    "#B09C85",
+    "../data/atac/liver_atac_bundle/Microtus_pennsylvanicus",
+    ""
+  ],
+  [
+    "Cavia_porcellus",
+    "Guinea pig",
+    "Cavia porcellus",
+    "#E64B35",
+    "../data/atac/liver_atac_bundle/Cavia_porcellus",
+    ""
+  ],
+  [
+    "Sciurus_carolinensis",
+    "Eastern gray squirrel",
+    "Sciurus carolinensis",
+    "#00A087",
+    "../data/atac/liver_atac_bundle/Sciurus_carolinensis",
+    ""
+  ],
+  [
+    "Scalopus_aquaticus",
+    "Eastern mole",
+    "Scalopus aquaticus",
+    "#8491B4",
+    "../data/atac/liver_atac_bundle/Scalopus_aquaticus",
+    ""
+  ],
+  [
+    "Ondatra_zibethicus",
+    "Muskrat",
+    "Ondatra zibethicus",
+    "#E64B35",
+    "../data/atac/liver_atac_bundle/Ondatra_zibethicus",
+    ""
+  ],
+  [
+    "Tamias_striatus",
+    "Eastern chipmunk",
+    "Tamias striatus",
+    "#4DBBD5",
+    "../data/atac/liver_atac_bundle/Tamias_striatus",
+    ""
+  ]
+]

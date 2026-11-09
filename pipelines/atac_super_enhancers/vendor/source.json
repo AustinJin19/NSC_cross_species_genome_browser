@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/stjude/ROSE",
+  "commit": "d845b98e8e8fa657b3d3e9af91653a8eea7449b4",
+  "files_sha256": {
+    "LICENSE.txt": "c5b75fd7715639977bbc92ddb4982aa9c2b3fb7aa7df56a5233ab4ccc3fbdd48",
+    "README.md": "cc7b8c8a5ff5e714aa0b6b00a12d350a0447913403e1ee9c8a2602ab002808f2",
+    "bin/ROSE_bamToGFF.py": "dc0b1245d032e3b8170f6d9cb7e0425f06149172e15b5a3e73add1e8f8580e67",
+    "bin/ROSE_callSuper.R": "ceb855b95da249ee8e469b60a24e5675560a96dbaad4bf8a687ceb3088254648",
+    "bin/ROSE_geneMapper.py": "75952853f737ddc6a63da2e926d0c85dc116f78c08da0968795672dac28b3359",
+    "bin/ROSE_main.py": "68c0c920445e3efc60f48220ec860133bee79e7e4ff48a26b5ad4b4efdf13d4f",
+    "lib/ROSE_utils.py": "1832f34e110d966928de0bbffa09d01bdbfe5a9de743993404921661f98cfeaf"
+  }
+}

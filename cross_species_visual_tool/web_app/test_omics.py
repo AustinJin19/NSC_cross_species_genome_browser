@@ -39,12 +39,15 @@ class LiverOmics(unittest.TestCase):
         nmr=data['lifespans']['Heterocephalus glaber']
         self.assertEqual(nmr['years'],41)
         self.assertAlmostEqual(nmr['log10_years'],math.log10(41))
-        self.assertIn('MLS_corrected',nmr['source'])
+        self.assertIn('species_traits_user_2026-10-15.tsv',nmr['source'])
+        self.assertEqual(nmr['body_mass_g'],35)
         self.assertIsNone(data['lifespans']['Eonycteris spelaea']['years'])
-        self.assertIn('Anage.zip',data['lifespans']['Sus scrofa']['source'])
+        self.assertEqual(data['lifespans']['Eonycteris spelaea']['lower_bound_years'],20)
+        self.assertIn('species_traits_user_2026-10-15.tsv',data['lifespans']['Sus scrofa']['source'])
+        self.assertEqual(data['lifespans']['Sus scrofa']['years'],27)
         rows=list(csv.DictReader(io.StringIO(omics.export_csv('ALB'))))
         for row in rows:
-            expected=data['lifespans'][row['species']]['years']
+            expected=data['lifespans'].get(row['species'],{}).get('years')
             self.assertEqual(row['MLS_years'],'' if expected is None else str(expected))
 
     def test_igf1_includes_naked_mole_rat(self):

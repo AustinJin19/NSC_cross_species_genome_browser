@@ -10,7 +10,7 @@ For **every species configured in `server.py` → `SPECS`**, provide:
 2. A gene/transcript index: **`<index-name>_models.tsv.gz` plus its `.tbi` index** in `cross_species_visual_tool/index/`.
 3. For Human, **`cross_species_visual_tool/index/Human_anchors.json`**.
 
-The current default configuration has nine species. Hiding a species with the website checkbox does **not** remove its startup requirements. To run a smaller collection, edit `SPECS` to contain only installed species and adjust species-specific readers if introducing new species. There is no upload/import configuration screen.
+The base configuration has nine species. The installed liver bundle adds 25 species through `web_app/data/additional_species.json`, for **34 species and 88 samples** after the 2026-10-19 import. Each additional species requires its matching signal files and transcript index as well. Hiding a species with the website checkbox does **not** remove its startup requirements. To run a smaller collection, edit `SPECS` and the additional-species configuration to contain only installed species. There is no upload/import configuration screen. See [liver bundle import](LIVER_BUNDLE_IMPORT.md) for its paths and rebuild steps.
 
 Raw FASTQ, BAM, reference FASTA, and GTF files are **not read for ordinary browser display** once the bigWigs and transcript indexes exist. FASTA/GTF files are needed for rebuilding transcript indexes. Peak calling and bigWig generation are upstream preprocessing steps; this website does not run alignment or MACS.
 

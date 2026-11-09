@@ -1,0 +1,43 @@
+library(ape)
+library(caper)
+library(jsonlite)
+arg<-grep('^--file=',commandArgs(),value=TRUE)
+here<-dirname(normalizePath(sub('^--file=','',arg[1])))
+tree<-read.tree(file.path(here,'../../cross_species_visual_tool/web_app/data/timetree_pgls.nwk'))
+cases<-fromJSON(file.path(here,'validation_cases.json'),simplifyVector=FALSE)
+analysis<-fromJSON(file.path(here,'analysis.json'),simplifyVector=FALSE)
+prepared<-lapply(cases,function(case){
+  d<-do.call(rbind,lapply(case$points,as.data.frame))
+  C<-do.call(rbind,lapply(case$covariance,unlist));dimnames(C)<-list(d$species,d$species)
+  cd<-comparative.data(tree,d,names.col='species',vcv=TRUE,na.omit=FALSE)
+  cd$vcv<-C[rownames(cd$data),rownames(cd$data)]
+  list(case=case,cd=cd)
+})
+checked<-lapply(prepared,function(p){
+  e<-p$case$expected;f<-pgls(y~x,p$cd,lambda=e$lambda_ml,bounds=list(lambda=c(0,1)))
+  s<-summary(f);co<-s$coefficients
+  got<-c(co['x',1],co['x',2],co['x',4],unname(f$param['lambda']),s$r.squared,co['(Intercept)',1],as.numeric(logLik(f)))
+  want<-unlist(e[c('beta','se','p','lambda_ml','gls_r2','intercept','log_likelihood')])
+  err<-max(abs(got-want));stopifnot(err<2e-7)
+  data.frame(assay=p$case$assay,gene=p$case$gene,shared_lambda=e$lambda_ml,max_error=err,p_python=e$p,p_R=co['x',4])
+})
+checked<-do.call(rbind,checked)
+write.table(checked,file.path(here,'R_caper_validation.tsv'),sep='\t',quote=FALSE,row.names=FALSE)
+pooled<-lapply(c('rna','atac'),function(assay){
+  entries<-Filter(function(p)p$case$assay==assay,prepared)
+  objective<-function(lam)sum(vapply(entries,function(p)as.numeric(logLik(pgls(y~x,p$cd,lambda=lam,bounds=list(lambda=c(0,1))))),numeric(1)))
+  grid<-seq(0,1,length.out=21);scores<-vapply(grid,objective,numeric(1))
+  best<-which.max(scores);lam<-grid[best];score<-scores[best]
+  for(i in seq_along(grid)){
+    if((i>1 && scores[i]<scores[i-1])||(i<length(grid) && scores[i]<scores[i+1]))next
+    z<-optimize(objective,c(max(0,grid[i]-.05),min(1,grid[i]+.05)),maximum=TRUE,tol=1e-9)
+    if(z$objective>score){lam<-z$maximum;score<-z$objective}
+  }
+  expected<-analysis$shared_lambda[[assay]]
+  stopifnot(abs(lam-expected$lambda_value)<2e-5,abs(score-expected$sum_profile_log_likelihood)<1e-6)
+  data.frame(assay=assay,shared_lambda_R=lam,shared_lambda_python=expected$lambda_value,summed_logLik_R=score)
+})
+pooled<-do.call(rbind,pooled)
+write.table(pooled,file.path(here,'R_shared_lambda_validation.tsv'),sep='\t',quote=FALSE,row.names=FALSE)
+print(pooled)
+cat(nrow(checked),'fits and both pooled optimizations verified; maximum fixed-fit error',max(checked$max_error),'\n')

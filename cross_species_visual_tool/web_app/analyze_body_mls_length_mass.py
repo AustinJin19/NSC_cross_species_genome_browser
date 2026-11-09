@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import t, false_discovery_control
 from server import SPECS,MODEL_INDEX,EXCLUDED_SAMPLES
 from calculate_gene_activity import gene_regions,quantify
+from region_availability import body_region, chrom_sizes, coverage
 ROOT=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--log-activity',action='store_true',help='Use log10 of the species median; exclude nonpositive values without a pseudocount')
@@ -17,6 +18,7 @@ out_name='gene_activity_body_log10_mls_length_mass' if args.log_activity else 'g
 if args.log_length:out_name=out_name.replace('_length_mass','_loglength_mass')
 if args.no_mass:out_name=out_name.replace('_mass','_no_mass')
 if args.exclude_bowhead:out_name += '_no_bowhead'
+out_name += '_region50'
 OUT=ROOT/'output'/out_name;OUT.mkdir(exist_ok=True,parents=True)
 CACHE=ROOT/'output/gene_activity_body_mls_expanded/species_scores';CACHE.mkdir(exist_ok=True)
 LIFE=json.loads((Path(__file__).parent/'data/species_mls.json').read_text())
@@ -32,6 +34,8 @@ existing={r[0] for r in con.execute('SELECT DISTINCT species FROM activity')}
 genes=defaultdict(dict);provenance=[]
 for sid,name,latin,color,folder,prefix in SELECTED:
  start=time.time();cache=CACHE/(sid+'.tsv')
+ paths=sorted(p for p in (ROOT/'cross_species_visual_tool'/folder).glob('*.bw') if p.name.lower().startswith(prefix.lower()) and p.stem.removesuffix('.cpm').removesuffix('_scaled') not in EXCLUDED_SAMPLES)
+ sizes=[chrom_sizes(str(p),p.stat().st_size,p.stat().st_mtime_ns) for p in paths]
  if cache.exists():
   rows=list(csv.DictReader(cache.open(),delimiter='\t'))
   for r in rows:r['activity']=float(r['activity']);r['length_kb']=float(r['length_kb'])
@@ -40,7 +44,6 @@ for sid,name,latin,color,folder,prefix in SELECTED:
   write(cache,rows,['gene','locus','activity','length_kb'])
  else:
   regions=gene_regions(ROOT/'cross_species_visual_tool/index'/f'{MODEL_INDEX.get(sid,sid)}_models.tsv.gz')
-  paths=sorted(p for p in (ROOT/'cross_species_visual_tool'/folder).glob('*.bw') if p.name.lower().startswith(prefix.lower()) and p.stem.removesuffix('.cpm').removesuffix('_scaled') not in EXCLUDED_SAMPLES)
   arrays=[]
   for path in paths:
    values,*_=quantify(path,regions,chunked=False);arrays.append(values)
@@ -54,7 +57,14 @@ for sid,name,latin,color,folder,prefix in SELECTED:
  for r in sorted(rows,key=lambda r:r['locus']):
   old=genes[r['gene']].get(sid)
   if old is None or r['activity']>old['activity']:genes[r['gene']][sid]=r
- provenance.append(dict(species=sid,scientific_name=latin,MLS=LIFE[latin]['years'],MLS_source=LIFE[latin],loci=len(rows)))
+ selected=[sp[sid] for sp in genes.values() if sid in sp]
+ for r in selected:
+  c,a,b=body_region(r['locus'])
+  bounds=[coverage(c,a,b,cs) for cs in sizes]
+  # Missing chromosomes / out-of-bounds intervals contribute no sample score.
+  measured=[d for d in bounds if d['available_bp']>0]
+  r['region_eligible']=bool(measured) and all(d['region_eligible'] for d in measured)
+ provenance.append(dict(species=sid,scientific_name=latin,MLS=LIFE[latin]['years'],MLS_source=LIFE[latin],loci=len(rows),minimum_available_fraction=0.5,selected_genes_excluded_by_region=sum(not r['region_eligible'] for r in selected)))
  print(sid,len(rows),'loci',round(time.time()-start,1),'seconds',flush=True)
 con.close()
 mls={s[0]:LIFE[s[2]]['years'] for s in SELECTED}
@@ -62,7 +72,7 @@ summary={}
 for axis in ['MLS','log10_MLS']:
  results=[]
  for gene,sp in genes.items():
-  ids=sorted(s for s in sp if (not args.log_activity or sp[s]['activity']>0) and (not args.log_length or sp[s]['length_kb']>0));n=len(ids)
+  ids=sorted(s for s in sp if sp[s]['region_eligible'] and (not args.log_activity or sp[s]['activity']>0) and (not args.log_length or sp[s]['length_kb']>0));n=len(ids)
   if n<5:continue
   x=np.array([mls[s] for s in ids]);x=np.log10(x) if axis=='log10_MLS' else x
   y=np.array([sp[s]['activity'] for s in ids]);z=np.array([sp[s]['length_kb'] for s in ids])

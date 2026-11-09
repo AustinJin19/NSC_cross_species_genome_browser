@@ -8,12 +8,44 @@ const svgNS='http://www.w3.org/2000/svg';
 const tip=document.createElement('div');tip.id='tooltip';tip.hidden=true;document.body.append(tip);
 function svgEl(tag,attrs={},text){const e=document.createElementNS(svgNS,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
 function add(svg,tag,attrs,text){const e=svgEl(tag,attrs,text);svg.append(e);return e;}
+function compactExportSvg(svg){
+ // Move complete shapes across empty horizontal bands; never rescale their
+ // coordinates internally. Keep the signal/peak area intact for its y scale.
+ const copy=svg.cloneNode(true),[vx,vy,width,height]=svg.getAttribute('viewBox').split(/\s+/).map(Number);
+ const elements=[...svg.children],copies=[...copy.children];
+ const boxes=elements.map(el=>{const b=el.getBBox();return {top:b.y-1,bottom:b.y+b.height+1};});
+ const guide=el=>el.tagName==='line'&&el.getAttribute('x1')===el.getAttribute('x2')&&['#f0f3f6','#005aa0'].includes(el.getAttribute('stroke'));
+ const intervals=[{top:0,bottom:88},...boxes.filter((b,i)=>!guide(elements[i]))].sort((a,b)=>a.top-b.top);
+ const gaps=[];let bottom=intervals[0].bottom;
+ for(const b of intervals.slice(1)){if(b.top>bottom+4)gaps.push({start:bottom,end:b.top,removed:b.top-bottom-4});bottom=Math.max(bottom,b.bottom);}
+ const shift=y=>gaps.reduce((sum,g)=>sum+(y>=g.end-.001?g.removed:0),0);
+ const compactHeight=Math.min(height,Math.ceil(bottom-shift(bottom)+3));
+ elements.forEach((el,i)=>{
+  if(guide(el)){for(const attr of ['y1','y2']){const y=Number(el.getAttribute(attr));copies[i].setAttribute(attr,Math.max(0,Math.min(compactHeight-2,y-shift(y))));}}
+  else{const offset=shift(boxes[i].top);if(offset)copies[i].setAttribute('transform',`translate(0,${(-offset).toFixed(3)})`);}
+ });
+ copy.setAttribute('viewBox',`${vx} ${vy} ${width} ${compactHeight}`);copy.setAttribute('height',compactHeight);
+ return new XMLSerializer().serializeToString(copy);
+}
 function sizeLabel(bp){return Math.abs(bp)>=1000?`${+(bp/1000).toFixed(1)} kb`:`${Math.round(bp)} bp`;}
 async function json(url,options){const r=await fetch(url,options);const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed');return d;}
 function orderPanels(panels){const order=new Map(state.catalog.map((s,i)=>[s.id,i]));return panels.sort((a,b)=>order.get(a.species||a.id)-order.get(b.species||b.id));}
 function panelSpec(){return orderPanels(state.panels).filter(p=>state.species.includes(p.species)).map(p=>({key:p.key,species:p.species,sample:p.sample}));}
-function annotationLabel(a){return `${a.gene}: ${a.samples}/${a.totalSamples} samples across ${a.species}/${a.totalSpecies} species have this gene annotation`;}
-function newPanel(meta,sample){return {key:'panel-'+state.nextPanel++,species:meta.id,sample:sample||meta.default,min:null,max:null};}
+function annotationLabel(a){return `${a.query&&a.query!==a.gene?a.query+' → ':''}${a.gene}: ${a.samples}/${a.totalSamples} samples across ${a.species}/${a.totalSpecies} species have a supported annotation match`+(a.mappedSpecies?` · ${a.mappedSpecies} via another name`:'')+(a.ambiguousSpecies?` · ${a.ambiguousSpecies} ambiguous`:'');}
+function renderGeneMatches(annotation){
+ const root=$('geneMatches');root.replaceChildren();
+ if(!annotation.matches)return;
+ const summary=document.createElement('summary');summary.textContent='Gene names and matching evidence';root.append(summary);
+ const table=document.createElement('table'),head=document.createElement('tr');
+ for(const name of ['Species','Annotation gene','Match']){const th=document.createElement('th');th.textContent=name;head.append(th);}table.append(head);
+ for(const sp of state.catalog){const m=annotation.matches[sp.id];if(!m)continue;const tr=document.createElement('tr');
+  for(const value of [sp.name,m.native_symbol||m.candidates?.join(', ')||'—']){const td=document.createElement('td');td.textContent=value;tr.append(td);}
+  const td=document.createElement('td');if(m.source){const a=document.createElement('a');a.href=m.source;a.target='_blank';a.rel='noopener';a.textContent=m.label;td.append(a);}else td.textContent=m.label;
+  if(m.support?.length)td.title='Supporting resources: '+m.support.join(', ');
+  tr.append(td);table.append(tr);
+ }root.append(table);
+}
+function newPanel(meta,sample){return {key:'panel-'+state.nextPanel++,species:meta.id,sample:sample||meta.default,min:null,max:null,showAnnotations:true};}
 async function load(){
  window.NSCOmics?.show(state.gene);
  window.NSCActivity?.show(state.gene);
@@ -25,7 +57,7 @@ async function load(){
 function render(){
  const d=state.data;if(!d)return;orderPanels(d.panels);
  $('locusTitle').textContent=d.gene;$('summary').textContent=`${new Set(d.panels.filter(p=>!p.error).map(p=>p.id)).size} species · ${d.panels.length} panels · ${(d.window*2/1000).toLocaleString('en-US',{maximumFractionDigits:3})} kb · ${Math.min(d.bins,d.window*2+1)} bins`;
- if($('gene').value.trim().toUpperCase()===d.gene)$('annotationCount').textContent=annotationLabel(d.annotation);
+ if($('gene').value.trim().toUpperCase()===(d.requestedGene||d.gene)){$('annotationCount').textContent=annotationLabel(d.annotation);renderGeneMatches(d.annotation);}
  $('speciesCount').textContent=state.species.length;
  const good=d.panels.filter(p=>!p.error), finite=good.flatMap(p=>p.signal.map(v=>v.value).filter(Number.isFinite));
  const globalMax=finite.reduce((a,b)=>Math.max(a,b),.001), globalMin=finite.reduce((a,b)=>Math.min(a,b),0);
@@ -43,25 +75,34 @@ function render(){
   const actions=document.createElement('div');actions.className='panel-actions';
   const duplicate=document.createElement('button');duplicate.type='button';duplicate.textContent='+ Add panel';duplicate.setAttribute('aria-label',`Add ${meta.name} panel`);duplicate.onclick=()=>{if(state.panels.length>=40){$('status').textContent='Up to 40 panels are supported.';return;}const used=state.panels.filter(c=>c.species===p.id).map(c=>c.sample),sample=meta.samples.find(s=>!used.includes(s))||config.sample;state.panels.splice(state.panels.indexOf(config)+1,0,newPanel(meta,sample));load();};actions.append(duplicate);
   if(state.panels.filter(c=>c.species===p.id).length>1){const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove ${meta.name} ${p.panelKey}`);remove.onclick=()=>{state.panels=state.panels.filter(c=>c!==config);load();};actions.append(remove);}label.append(actions);
+  const showAnnotations=$('models').checked&&config.showAnnotations;
+  if(!p.error){const annotations=document.createElement('button');annotations.type='button';annotations.className='annotation-toggle';annotations.textContent=config.showAnnotations?'Hide annotations':'Show annotations';annotations.disabled=!$('models').checked;annotations.setAttribute('aria-label',`${config.showAnnotations?'Hide':'Show'} gene annotations for ${meta.name} ${config.sample} ${p.panelKey}`);annotations.setAttribute('aria-pressed',String(showAnnotations));annotations.title=annotations.disabled?'Enable Gene annotations in the sidebar to control this panel.':'Show or hide gene annotations in this panel.';annotations.onclick=()=>{config.showAnnotations=!config.showAnnotations;tip.hidden=true;render();document.querySelector(`[data-panel-key="${p.panelKey}"] .annotation-toggle`)?.focus({preventScroll:true});};actions.append(annotations);}
   if(!p.error){const coords=document.createElement('div');coords.className='coordinate';coords.textContent=`${p.chrom}:${fmt(Math.max(1,p.from))}–${fmt(p.to)} (${p.strand})`;label.append(coords);if(p.tssTranscript){const anchor=document.createElement('div');anchor.className='coordinate';anchor.textContent=`TSS: ${p.tssTranscript} · ${p.tssMethod.replaceAll('_',' ')}`;label.append(anchor);}}
+  if(!p.error&&p.geneMatch?.method!=='exact_symbol'){const match=document.createElement('div');match.className='gene-match';match.textContent=`${p.matchedGene} → ${p.geneMatch.canonical}`;const source=document.createElement('a');source.textContent=p.geneMatch.label;source.href=p.geneMatch.source;source.target='_blank';source.rel='noopener';match.append(document.createElement('br'),source);label.append(match);}
   row.append(label);const plot=document.createElement('div');plot.className='track-plot';row.append(plot);$('tracks').append(row);
   if(p.error){plot.classList.add('track-error');plot.textContent=p.error;continue;}
   const sgn=p.strand==='-'?-1:1,toRel=pos=>(pos-p.centre)*sgn;
   const textMeasure=document.createElement('canvas').getContext('2d');textMeasure.font='8px sans-serif';
-  const geneLayout=packGenes($('models').checked?(p.models||[]):[],d.gene,pos=>x(toRel(pos)),pad,width-pad,text=>textMeasure.measureText(text).width);
+  const geneLayout=packGenes(showAnnotations?(p.models||[]):[],p.matchedGene||d.gene,pos=>x(toRel(pos)),pad,width-pad,text=>textMeasure.measureText(text).width);
   const modelRows=geneLayout.placed;
   const chipRows=(p.chipTracks||[]).filter(t=>t.available&&$('chip'+t.name).checked);
-  const ccre=$('ccre').checked?p.ccre:null,ccreTop=94+chipRows.length*28;
+  const se=p.superEnhancers&&(p.id==='Human'?$('humanSuperEnhancers').checked:p.id==='Mouse'&&$('mouseSuperEnhancers').checked)?p.superEnhancers:null;
+  const seCandidate=$('superEnhancerSet').value==='candidate',seTop=94+chipRows.length*28;
+  const seAvailable=se&&se.available&&(!seCandidate||se.candidateAvailable);
+  const seRegions=seAvailable?se.regions.filter(r=>!seCandidate||r.candidateLiverSpecific):[];
+  const atacUnion=$('atacSuperEnhancerSet').value==='union';
+  const atacSe=$('atacSuperEnhancers').checked?(atacUnion?p.atacSuperEnhancerUnion:p.atacSuperEnhancers):null,atacSeTop=seTop+(se?36:0);
+  const ccre=$('ccre').checked?p.ccre:null,ccreTop=atacSeTop+(atacSe?36:0);
   const ccreRegions=ccre?ccre.regions.filter(r=>$('ccreType').value==='all'||r.category===$('ccreType').value):[];
   const te=$('teRepeats').checked?p.teRepeats:null,teTop=ccreTop+(ccre?32:0);
   const teType=$('teType').value,teMatch=c=>teType==='all'||(teType==='other'?['Retroposon','RC'].includes(c):c===teType);
   const teClasses=te?te.classes.filter(c=>teMatch(c.name)):[],teRegions=te?te.regions.filter(r=>teMatch(r.repeatClass)):[];
   const loopTrack=$('microc').checked?p.microc:null,loopTop=teTop+(te?20+teClasses.length*7:0);
-  const arcTracks=[loopTrack].filter(Boolean);
+  const arcTracks=[loopTrack,$('humanLoops').checked?p.humanLoops:null].filter(Boolean);
   const hic=$(p.id==='NMR'?'nmrHic':p.id==='Mouse'?'mouseHic':'humanHic').checked?p.hic:null,hicTop=loopTop+arcTracks.length*140,hicDepth=700;
   const geneTop=hicTop+(hic?hicDepth+75:0);
   const height=Math.max(116,geneTop+(geneLayout.rowCount?geneLayout.rowCount*22+4:0));
-  const svg=svgEl('svg',{viewBox:`0 0 ${width} ${height}`,preserveAspectRatio:'none',role:'img','aria-label':`${meta.name} ${d.gene} ATAC signal, gene annotations, ATAC peaks, ChIP-seq regions, candidate cis-regulatory elements TE repeats, Micro-C loops and Hi-C heatmap`});svg.style.height=height+'px';plot.append(svg);
+  const svg=svgEl('svg',{viewBox:`0 0 ${width} ${height}`,preserveAspectRatio:'none',role:'img','aria-label':`${meta.name} ${d.gene} ATAC signal, ${showAnnotations?'gene annotations, ':''}ATAC peaks, ChIP-seq regions, ${se?'liver super-enhancers, ':''}${atacSe?`ATAC candidate super-enhancers ${atacUnion?'union of samples':'shared in at least two samples'}, `:''}candidate cis-regulatory elements TE repeats, chromatin loops and Hi-C heatmap`});svg.style.height=height+'px';plot.append(svg);
   const unit=p.signalUnit||'CPM';
   const values=p.signal.map(v=>v.value).filter(Number.isFinite),autoMax=Math.max(.001,...values),autoMin=Math.min(0,...values);
   const shared=$('scale').value==='shared';
@@ -88,6 +129,27 @@ function render(){
    add(svg,'text',{x:pad,y:yy,fill:track.color,'font-size':10},track.name);
    for(const region of track.regions){const bar=rect(region.start,region.end,yy+5,6,track.color);if(bar)bar.chipInfo=`${meta.name} ${track.name} · ${region.name}\n${p.chrom}:${fmt(region.start)}–${fmt(region.end)} (1-based)\n${track.assembly} · replicated peaks`;}
   });
+  if(se){
+   const setName=seCandidate?'candidate liver-specific':'all liver regions';
+   const trackLabel=add(svg,'text',{x:pad,y:seTop,fill:se.color,'font-size':10},`dbSUPER liver super-enhancers · ${setName} · ${se.assembly} · ${seRegions.length} in view`);
+   trackLabel.chipInfo=`${meta.name} · adult liver H3K27ac · ${se.source}\n${se.datasets.length} source dataset(s) · ${seCandidate?se.candidateTotal:se.total} regions genome-wide\nOverlapping calls are merged; spans can contain gaps between enhancers.\nCandidate status: no overlap with super-enhancer calls in ${se.comparatorDatasets??'other'} adult non-liver datasets; ordinary enhancer activity elsewhere is possible.`;
+   if(!seRegions.length)add(svg,'text',{x:pad,y:seTop+18,fill:'#6c757d','font-size':9},seAvailable?'No super-enhancers in this window':'Super-enhancer file unavailable');
+   for(const region of seRegions){const bar=rect(region.start,region.end,seTop+8,8,se.color);if(bar){
+    bar.setAttribute('aria-label',`Liver super-enhancer ${region.name}`);
+    bar.chipInfo=`${region.name}\n${p.chrom}:${fmt(region.start)}–${fmt(region.end)} (1-based) · ${se.assembly}\n${!se.candidateAvailable?'Specificity data unavailable':region.candidateLiverSpecific?'Candidate liver-specific':'Liver-active; also overlaps a non-liver super-enhancer call'}\n${region.nLiverDatasets??'Unknown'} liver dataset(s): ${region.liverDatasets.join(', ')||'unavailable'}\n${se.source} · H3K27ac · ${se.snapshot}`;
+   }}
+  }
+  if(atacSe){
+   const single=atacSe.status==='single_sample_only';
+   const setName=atacUnion?'union ≥1':'shared ≥2',supportText=atacUnion?'at least one sample':'at least two distinct samples';
+   const trackLabel=add(svg,'text',{x:pad,y:atacSeTop,fill:atacSe.color,'font-size':10},`ATAC candidate super-enhancers · ${setName}${atacSe.available&&!single?' · '+atacSe.regions.length+' in view':''}`);
+   trackLabel.chipInfo=`${meta.name} · ATAC candidate super-enhancers\nBases supported by ${supportText}; adjacent qualifying segments are merged.\n${atacSe.nSamples??'Unknown'} input sample(s) · ${atacSe.total} ${atacUnion?'union':'shared'} regions genome-wide\n${atacSe.file||'No region file provided'}\nSpecies-level track; supporting sample identities can change along a merged region. ATAC candidates do not establish liver specificity.`;
+   if(!atacSe.regions.length)add(svg,'text',{x:pad,y:atacSeTop+18,fill:'#6c757d','font-size':9},single?'Shared regions unavailable: only one input sample':!atacSe.available?(atacSe.status==='not_provided'?`No ${atacUnion?'union':'shared'}-region file provided`:`${atacUnion?'Union':'Shared'}-region file unavailable`):`No ${atacUnion?'union':'shared'} candidate super-enhancers in this window`);
+   for(const region of atacSe.regions){const bar=rect(region.start,region.end,atacSeTop+8,8,atacSe.color);if(bar){
+    bar.setAttribute('aria-label',`ATAC ${atacUnion?'union':'shared'} super-enhancer ${region.name}`);
+    bar.chipInfo=`${meta.name} · ${region.name}\n${p.chrom}:${fmt(region.start)}–${fmt(region.end)} (1-based)\n${fmt(region.end-region.start+1)} bp · each base supported by ${supportText}\n${atacSe.nSamples} input sample(s): ${atacSe.samples.join(', ')}\nATAC candidate super-enhancer · species-level ${atacUnion?'union':'shared'} regions`;
+   }}
+  }
   if(ccre){
    add(svg,'text',{x:pad,y:ccreTop,fill:'#42566a','font-size':10},`ENCODE4 cCREs${ccre.available?'':' · file unavailable'}`);
    for(const region of ccreRegions){const bar=rect(region.start,region.end,ccreTop+6,8,region.color);if(bar)bar.chipInfo=`${region.name} · ${region.category}\n${p.chrom}:${fmt(region.start)}–${fmt(region.end)} (1-based)\nENCODE4 · hg38 · all tissues`;}
@@ -100,7 +162,9 @@ function render(){
   arcTracks.forEach((loopTrack,trackIndex)=>{
    const top=loopTop+trackIndex*140;
    const loops=loopTrack.regions||[],base=top+104,color='#1864ab';
-   add(svg,'text',{x:pad,y:top+4,fill:color,'font-size':10},'Predicted Micro-C loops');
+   const isDeepLoop=loopTrack.kind==='deeploop';
+   const trackLabel=add(svg,'text',{x:pad,y:top+4,fill:color,'font-size':10},isDeepLoop?loopTrack.label:'Predicted Micro-C loops');
+   if(isDeepLoop)trackLabel.chipInfo=`Human liver · GSE167200 · hg38\nRanked DeepLoop contact pixels; score is not a p-value.${loopTrack.total>loops.length?`\nShowing the ${loops.length} highest-scoring pairs of ${loopTrack.total} overlapping pairs; zoom in for detail.`:''}`;
    add(svg,'line',{x1:pad,x2:width-pad,y1:base,y2:base,stroke:'#cdddeb'});
    if(!loops.length)add(svg,'text',{x:pad,y:top+42,fill:'#6c757d','font-size':10},loopTrack.available?'No loop anchors in this window':'Loop file unavailable');
    for(const loop of loops){
@@ -111,8 +175,10 @@ function render(){
     const clamp=v=>Math.max(pad,Math.min(width-pad,v));
     const a=local1?clamp(raw1):(inside2?clamp(raw2):pad),b=local2?clamp(raw2):(inside1?clamp(raw1):width-pad);
     const arcHeight=Math.max(15,Math.min(76,Math.abs(b-a)*.22));
-    const shape=add(svg,'path',{d:`M ${a} ${base} Q ${(a+b)/2} ${base-2*arcHeight} ${b} ${base}`,fill:'none',stroke:color,'stroke-width':1.2,'stroke-opacity':.55,...(!inside1||!inside2?{'stroke-dasharray':'4 3'}:{})});
-    shape.chipInfo=`${p.sample} · ${loop.name}\n${loop.chrom1}:${fmt(loop.start1)}–${fmt(loop.end1)} ↔ ${loop.chrom2}:${fmt(loop.start2)}–${fmt(loop.end2)} (1-based)\nlog2 O/E: ${loop.log2OE} · log2 enrichment: ${loop.log2Enrichment}\nCalled in ${loop.windowsCalled}/${loop.windowsCovering} covering windows${!inside1||!inside2?'\nDashed: an anchor is outside this view':''}`;
+    const shape=add(svg,'path',{d:`M ${a} ${base} Q ${(a+b)/2} ${base-2*arcHeight} ${b} ${base}`,fill:'none',stroke:color,'stroke-width':1.2,'stroke-opacity':.55,'data-loop-track':isDeepLoop?'human-liver':'nmr-microc',...(!inside1||!inside2?{'stroke-dasharray':'4 3'}:{})});
+    const location=`${loop.chrom1}:${fmt(loop.start1)}–${fmt(loop.end1)} ↔ ${loop.chrom2}:${fmt(loop.start2)}–${fmt(loop.end2)} (1-based)`;
+    shape.chipInfo=isDeepLoop?`Human liver · ${loop.name}\n${location} · hg38\nDeepLoop score: ${Number(loop.score).toPrecision(5)}\nOriginal hg19: ${loop.hg19Anchor1} ↔ ${loop.hg19Anchor2}`:`${p.sample} · ${loop.name}\n${location}\nlog2 O/E: ${loop.log2OE} · log2 enrichment: ${loop.log2Enrichment}\nCalled in ${loop.windowsCalled}/${loop.windowsCovering} covering windows`;
+    if(!inside1||!inside2)shape.chipInfo+='\nDashed: an anchor is outside this view';
     if(local1){const bar=rect(loop.start1,loop.end1,base-2,4,color);if(bar)bar.chipInfo=shape.chipInfo;}
     if(local2){const bar=rect(loop.start2,loop.end2,base-2,4,color);if(bar)bar.chipInfo=shape.chipInfo;}
    }
@@ -135,13 +201,13 @@ function render(){
     add(svg,'text',{x:pad,y:hicTop+hicDepth+59,fill:'#6c757d','font-size':8},hic.warning||`${hic.label}, merged matrix · both anchors in view · depth represents genomic separation`);
    }
   }
-  if($('models').checked){modelRows.forEach(({model:m,lane,labelX,labelWidth,fontSize,anchorX})=>{const yy=geneTop+lane*22;rect(m.start,m.end,yy,1,'#000099');const starts=m.ex_s.split(',').filter(Boolean).map(Number),ends=m.ex_e.split(',').filter(Boolean).map(Number);starts.forEach((a,j)=>rect(a+1,ends[j],yy-2,5,'#000099'));for(const arrow of intronArrows(m,p.strand,pos=>x(toRel(pos)),pad,width-pad)){const tip=arrow.x+arrow.direction*2,tail=arrow.x-arrow.direction*2;add(svg,'path',{d:`M ${tail} ${yy-2} L ${tip} ${yy} L ${tail} ${yy+2}`,fill:'none',stroke:'#000099','stroke-width':.8});}if(Math.abs(labelX-anchorX)>2)add(svg,'line',{x1:anchorX,y1:yy+3,x2:labelX,y2:yy+6,stroke:'#000099','stroke-width':.5});const geneLabel=add(svg,'text',{x:labelX,y:yy+12,fill:'#000099','font-size':fontSize,'font-family':'sans-serif',textLength:labelWidth,lengthAdjust:'spacingAndGlyphs','data-gene':m.gname},m.gname);geneLabel.chipInfo=`${m.gname} · ${m.tx}\n${p.chrom}:${fmt(m.start)}–${fmt(m.end)} (${m.strand})`;});}
+  if(showAnnotations){modelRows.forEach(({model:m,lane,labelX,labelWidth,fontSize,anchorX})=>{const yy=geneTop+lane*22;rect(m.start,m.end,yy,1,'#000099');const starts=m.ex_s.split(',').filter(Boolean).map(Number),ends=m.ex_e.split(',').filter(Boolean).map(Number);starts.forEach((a,j)=>rect(a+1,ends[j],yy-2,5,'#000099'));for(const arrow of intronArrows(m,p.strand,pos=>x(toRel(pos)),pad,width-pad)){const tip=arrow.x+arrow.direction*2,tail=arrow.x-arrow.direction*2;add(svg,'path',{d:`M ${tail} ${yy-2} L ${tip} ${yy} L ${tail} ${yy+2}`,fill:'none',stroke:'#000099','stroke-width':.8});}if(Math.abs(labelX-anchorX)>2)add(svg,'line',{x1:anchorX,y1:yy+3,x2:labelX,y2:yy+6,stroke:'#000099','stroke-width':.5});const geneLabel=add(svg,'text',{x:labelX,y:yy+12,fill:'#000099','font-size':fontSize,'font-family':'sans-serif',textLength:labelWidth,lengthAdjust:'spacingAndGlyphs','data-gene':m.gname},m.gname);geneLabel.chipInfo=`${m.gname} · ${m.tx}\n${p.chrom}:${fmt(m.start)}–${fmt(m.end)} (${m.strand})`;});}
   attachTrackPan(svg,d,width,pad);
   svg.addEventListener('mousemove',event=>{if(document.body.classList.contains('track-panning'))return;if(event.target.chipInfo){tip.textContent=event.target.chipInfo;tip.hidden=false;tip.style.left=`${Math.max(4,Math.min(event.clientX+12,innerWidth-330))}px`;tip.style.top=`${Math.min(event.clientY+12,innerHeight-85)}px`;return;}const r=svg.getBoundingClientRect(),frac=Math.max(0,Math.min(1,(event.clientX-r.left)/r.width));const rel=(frac*width-pad)/(width-2*pad)*2*d.window-d.window;const point=p.signal.reduce((a,b)=>Math.abs(a.rel-rel)<Math.abs(b.rel-rel)?a:b);tip.textContent=`${meta.name} · ${p.sample}\n${p.chrom}:${fmt(p.centre+sgn*point.rel)}\n${point.value===null?'Outside sequence':point.value.toFixed(3)+' '+unit} · ${sizeLabel(point.rel+d.pan)} from TSS`;tip.hidden=false;tip.style.left=`${Math.max(4,Math.min(event.clientX+12,innerWidth-310))}px`;tip.style.top=`${Math.min(event.clientY+12,innerHeight-85)}px`;});svg.addEventListener('mouseleave',()=>tip.hidden=true);
  }
 }
 $('searchForm').onsubmit=e=>{e.preventDefault();state.gene=$('gene').value.trim().toUpperCase();state.pan=0;load();};
-let searchTimer;$('gene').oninput=()=>{clearTimeout(searchTimer);const q=$('gene').value.trim();$('genes').replaceChildren();$('annotationCount').textContent=q?'Checking annotations…':'';searchTimer=setTimeout(async()=>{try{const result=await json('/api/genes?q='+encodeURIComponent(q));if(q!==$('gene').value.trim())return;$('genes').replaceChildren(...result.choices.map(a=>{const option=new Option(a.gene,a.gene);option.label=`${a.gene} · ${a.samples} samples / ${a.species} species`;return option;}));$('annotationCount').textContent=q?annotationLabel(result.match):'';}catch{$('annotationCount').textContent='Annotation counts unavailable';}},180);};
+let searchTimer;$('gene').oninput=()=>{clearTimeout(searchTimer);const q=$('gene').value.trim();$('genes').replaceChildren();$('geneMatches').replaceChildren();$('annotationCount').textContent=q?'Checking annotations…':'';searchTimer=setTimeout(async()=>{try{const result=await json('/api/genes?q='+encodeURIComponent(q));if(q!==$('gene').value.trim())return;$('genes').replaceChildren(...result.choices.map(a=>{const option=new Option(a.gene,a.gene);option.label=`${a.query!==a.gene?a.query+' → ':''}${a.gene} · ${a.samples} samples / ${a.species} species`;return option;}));$('annotationCount').textContent=q?annotationLabel(result.match):'';if(q)renderGeneMatches(result.match);}catch{$('annotationCount').textContent='Annotation counts unavailable';}},180);};
 function attachTrackPan(svg,data,width,pad){
  svg.addEventListener('pointerdown',event=>{
   if(event.button!==0||!event.isPrimary||state.loading)return;
@@ -176,16 +242,17 @@ function windowChange(span){state.window=Math.max(1,Math.round(span))/2;$('windo
 $('viewForm').onsubmit=e=>{e.preventDefault();state.bins=Number($('bins').value);windowChange(Number($('window').value)*1000);};
 $('zoomIn').onclick=()=>windowChange(state.window);$('zoomOut').onclick=()=>windowChange(state.window*4);
 $('left').onclick=()=>{state.pan-=Math.round(state.window*.5);load();};$('right').onclick=()=>{state.pan+=Math.round(state.window*.5);load();};$('reset').onclick=()=>{state.pan=0;windowChange(100000);};
-for(const id of ['models','peaks','scale','chipH3K4me3','chipH3K27ac','teRepeats','teType','microc','nmrHic','mouseHic','humanHic','ccre','ccreType'])$(id).onchange=render;
+for(const id of ['models','peaks','scale','chipH3K4me3','chipH3K27ac','humanSuperEnhancers','mouseSuperEnhancers','superEnhancerSet','atacSuperEnhancers','atacSuperEnhancerSet','teRepeats','teType','microc','nmrHic','mouseHic','humanHic','humanLoops','ccre','ccreType'])$(id).onchange=render;
 $('exportPdf').onclick=async()=>{
  if(!state.data||state.loading)return;
  const button=$('exportPdf');button.disabled=true;button.textContent='Creating PDF…';
+ $('status').textContent='Creating a single-page PDF for all selected panels…';
  const d=state.data,serializer=new XMLSerializer();
- const payload={gene:d.gene,summary:$('summary').textContent+' · '+$('scale').selectedOptions[0].textContent,
+ const payload={gene:d.gene,pageLayout:$('pdfPageLayout').value,summary:$('summary').textContent+' · '+$('scale').selectedOptions[0].textContent,
   ruler:serializer.serializeToString($('ruler').querySelector('svg')),
-  panels:d.panels.map(p=>{const row=document.querySelector(`[data-panel-key="${p.panelKey}"]`),svg=row.querySelector('svg');return {name:state.catalog.find(s=>s.id===p.id).name,sample:p.sample||'',coordinates:row.querySelector('.coordinate')?.textContent||'',error:p.error||'',svg:svg?serializer.serializeToString(svg):null};})};
+  panels:d.panels.map(p=>{const row=document.querySelector(`[data-panel-key="${p.panelKey}"]`),svg=row.querySelector('svg');return {name:state.catalog.find(s=>s.id===p.id).name+(p.geneMatch?.method!=='exact_symbol'&&p.matchedGene?' · '+p.matchedGene:''),sample:p.sample||'',coordinates:row.querySelector('.coordinate')?.textContent||'',error:p.error||'',svg:svg?compactExportSvg(svg):null};})};
  try{const response=await fetch('/api/export-pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok){const error=await response.json();throw Error(error.error);}
- const result=await response.json(),a=document.createElement('a');a.href=result.url;a.download=`${d.gene}_NSC.pdf`;document.body.append(a);a.click();a.remove();
+ const result=await response.json(),a=document.createElement('a');a.href=result.url;a.download=`${d.gene}_NSC_${payload.pageLayout.replace(':','x')}.pdf`;document.body.append(a);a.click();a.remove();$('status').textContent=`PDF ready: all selected panels on one ${payload.pageLayout==='full-height'?'full-height':payload.pageLayout+' slide'} page.`;
  }catch(e){$('status').textContent=e.message;}finally{button.textContent='↓ Export PDF';button.disabled=state.loading||!state.data;}
 };
 

@@ -12,6 +12,27 @@ INDEX=ROOT/'cross_species_visual_tool/index'
 EXISTING={'Homo_sapiens','Heterocephalus_glaber','Nannospalax_galili','Fukomys_damarensis','Mus_musculus','Rattus_norvegicus','Macaca_mulatta','Sylvilagus_floridanus','Acomys_cahirinus'}
 NAMES={'Hydrochoerus_hydrochaeris':'Capybara','Eonycteris_spelaea':'Cave nectar bat','Myocastor_coypus':'Nutria','Balaena_mysticetus':'Bowhead whale','Artibeus_jamaicensis':'Jamaican fruit bat','Castor_canadensis':'North American beaver','Cricetulus_griseus':'Chinese hamster','Chinchilla_lanigera':'Chinchilla','Octodon_degus':'Degu','Eptesicus_fuscus':'Big brown bat','Sciurus_niger':'Fox squirrel','Meriones_unguiculatus':'Mongolian gerbil','Mesocricetus_auratus':'Golden hamster','Molossus_molossus':'Pallas’s mastiff bat','Erethizon_dorsatum':'North American porcupine','Tamiasciurus_hudsonicus':'American red squirrel','Marmota_monax':'Woodchuck','Peromyscus_maniculatus':'Deer mouse','Microtus_pennsylvanicus':'Meadow vole','Cavia_porcellus':'Guinea pig','Sciurus_carolinensis':'Eastern gray squirrel'}
 COLORS=['#E64B35','#4DBBD5','#00A087','#3C5488','#F39B7F','#8491B4','#91D1C2','#DC0000','#7E6148','#B09C85']
+NAMES.update({'Cricetomys_gambianus':'Gambian pouched rat',
+              'Scalopus_aquaticus':'Eastern mole',
+              'Ondatra_zibethicus':'Muskrat',
+              'Tamias_striatus':'Eastern chipmunk'})
+
+def manifest_track_path(row, key, tracks, overrides):
+    """Discover later downloads even when the original manifest has no signal."""
+    folder = 'bigwig' if key == 'bigwig' else 'peaks'
+    if row[key] != '-':
+        name = Path(row[key]).name
+        return local_track_path(BUNDLE/folder/name, tracks/name, overrides)
+    suffixes = ('.cpm.bw', '.bw', '_scaled.bw') if key == 'bigwig' else ('_peaks.narrowPeak', '_peaks.narrowPeak.gz')
+    candidates = [tracks/(row['sample']+suffix) for suffix in suffixes]
+    candidates = [p for p in candidates if p.exists() or str(p.relative_to(ROOT)) in overrides]
+    if len(candidates) > 1:
+        raise ValueError('Multiple local files for '+row['sample']+' '+key)
+    if not candidates:
+        return '-'
+    target = candidates[0]
+    return local_track_path(BUNDLE/folder/target.name, target, overrides)
+
 def local_track_path(source, target, overrides):
     """Keep consolidated paths and deliberately removed samples on re-import."""
     relative = str(target.relative_to(ROOT))
@@ -36,6 +57,8 @@ def build(sp,ref,trackdir):
     tracks=sorted(trackdir.glob('*.bw')); chroms={}
     for p in tracks:
         with pyBigWig.open(str(p)) as bw:
+            if not bw.isBigWig() or bw.header().get('nBasesCovered',0) <= 0:
+                raise ValueError(f'Empty bigWig: {p.name} contains no signal records')
             cs=bw.chroms()
             bad=[c for c,n in cs.items() if sizes.get(c)!=n]
             if bad:raise ValueError(f'{p.name}: sequence length/name mismatch: {bad[:5]}')
@@ -85,10 +108,8 @@ def main():
         for p in list((BUNDLE/'genome').glob(sp+'.*'))+list((BUNDLE/'annotation').glob(sp+'.*')):move(p,ref/p.name)
         for r in rs:
             item=dict(r)
-            for key,folder in [('bigwig','bigwig'),('narrowPeak','peaks')]:
-                if r[key]!='-':
-                    name=Path(r[key]).name
-                    item[key]=local_track_path(BUNDLE/folder/name,tracks/name,overrides)
+            for key in ('bigwig','narrowPeak'):
+                item[key]=manifest_track_path(r,key,tracks,overrides)
             item['fasta']=str((ref/(sp+'.fa.gz')).relative_to(ROOT));item['gtf']=str((ref/(sp+'.gtf.gz')).relative_to(ROOT));local.append(item)
         status={'species':sp}
         if sp in EXISTING:status['status']='existing browser sources retained; see manifest.local.tsv for consolidated paths'

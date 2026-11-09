@@ -3,7 +3,8 @@ import gzip,statistics
 from pathlib import Path
 from functools import lru_cache
 import numpy as np
-import pyBigWig
+from region_availability import annotate_region, chrom_sizes
+from sample_qc import filter_records
 
 @lru_cache(maxsize=128)
 def peak_arrays(path, size, modified):
@@ -15,16 +16,12 @@ def peak_arrays(path, size, modified):
             if b>a:groups.setdefault(c,[]).append((a,b))
     return {c:(np.sort([a for a,b in rows]),np.sort([b for a,b in rows])) for c,rows in groups.items()}
 
-@lru_cache(maxsize=128)
-def chrom_sizes(path,size,modified):
-    with pyBigWig.open(path) as bw:return bw.chroms()
-
 def score_records(records,flank):
     from server import SPECS,resolve_chrom,peak_path
     root=Path(__file__).resolve().parent.parent
     folders={s[0]:root/s[4] for s in SPECS}
     output=[]
-    for original in records:
+    for original in filter_records(records):
         row=dict(original);chrom,span,strand=row['locus'].rsplit('|',1)[1].rsplit(':',2)
         a,b=map(int,span.split('-'));tss=a if strand=='+' else b-1
         samples,details={},{}
@@ -48,5 +45,6 @@ def score_records(records,flank):
             samples[sample]=value;details[sample]={'status':status,'quantified_bp':width}
         valid=[v for v in samples.values() if v is not None]
         row.update(samples=samples,median=statistics.median(valid) if valid else None,unit='peak_count',window_details=details,region_start=tss-flank,region_end=tss+flank)
+        annotate_region(row,chrom,tss-flank,tss+flank,folders[row['species']])
         output.append(row)
     return output

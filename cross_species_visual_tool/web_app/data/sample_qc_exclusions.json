@@ -1,0 +1,90 @@
+{
+  "source": "bundle_sample_qc_summary.tsv",
+  "source_sha256": "acac6cc87b8369014214a05e3f59d11d8115c18f2505d5a409ea677591dec719",
+  "updated": "2026-10-24",
+  "enabled": false,
+  "always_exclude": ["NMR1Liver"],
+  "active_policy_note": "The website uses the pre-QC sample set at the user's request. The TSS <4 filter is disabled. NMR1Liver was already absent before this filter was introduced.",
+  "criterion": "TSS enrichment < 4",
+  "threshold": 4,
+  "missing_tss": "retain",
+  "samples_with_missing_tss": [
+    "AGP1Liver",
+    "ASM3Liver",
+    "ASM4Liver"
+  ],
+  "excluded_samples": [
+    {
+      "sample": "BHW14B11Liver",
+      "species": "Balaena_mysticetus",
+      "tss_enrichment": 1.68,
+      "run": "bhw_HLbalMyst1A"
+    },
+    {
+      "sample": "BHW18B10Liver",
+      "species": "Balaena_mysticetus",
+      "tss_enrichment": 2.7,
+      "run": "bhw_HLbalMyst1A"
+    },
+    {
+      "sample": "BHW18B9Liver",
+      "species": "Balaena_mysticetus",
+      "tss_enrichment": 3.36,
+      "run": "bhw_HLbalMyst1A"
+    },
+    {
+      "sample": "BMR3Liver",
+      "species": "Nannospalax_galili",
+      "tss_enrichment": 2.29,
+      "run": "batch2"
+    },
+    {
+      "sample": "CCH3Liver",
+      "species": "Cricetulus_griseus",
+      "tss_enrichment": 3.34,
+      "run": "batch1"
+    },
+    {
+      "sample": "CH2Liver",
+      "species": "Chinchilla_lanigera",
+      "tss_enrichment": 1.31,
+      "run": "batch2"
+    },
+    {
+      "sample": "DG1Liver",
+      "species": "Octodon_degus",
+      "tss_enrichment": 1.51,
+      "run": "batch2"
+    },
+    {
+      "sample": "K11Liver",
+      "species": "Ondatra_zibethicus",
+      "tss_enrichment": 3.17,
+      "run": "batch2"
+    },
+    {
+      "sample": "N3Liver",
+      "species": "Myocastor_coypus",
+      "tss_enrichment": 2.25,
+      "run": "toga2"
+    },
+    {
+      "sample": "NMR1Liver",
+      "species": "Heterocephalus_glaber",
+      "tss_enrichment": 1.69,
+      "run": "batch2"
+    },
+    {
+      "sample": "Q3Liver",
+      "species": "Erethizon_dorsatum",
+      "tss_enrichment": 2.83,
+      "run": "batch2"
+    },
+    {
+      "sample": "RS2Liver",
+      "species": "Tamiasciurus_hudsonicus",
+      "tss_enrichment": 3.37,
+      "run": "batch2"
+    }
+  ]
+}

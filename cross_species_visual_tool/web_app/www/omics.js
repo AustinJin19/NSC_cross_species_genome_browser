@@ -70,7 +70,7 @@
    const detail=document.createElement('p');detail.className='omics-point-detail';detail.textContent='Hover or focus a point to inspect its species and values.';root.append(detail);
   }
   const tbody=el('omicsRows');tbody.replaceChildren();
-  for(const r of rows){const tr=document.createElement('tr');for(const v of [r.assay==='rna'?'RNA':'Protein',r.species,r.sample,format(r.raw),format(r.log),format(r.normalized),r.workbook,r.source_row]){const td=document.createElement('td');td.textContent=v;tr.append(td);}tbody.append(tr);}
+  for(const r of rows){const tr=document.createElement('tr');for(const v of [r.assay==='rna'?'RNA':'Protein',r.species,r.symbol,r.gene_match?.label||'Exact symbol',r.sample,format(r.raw),format(r.log),format(r.normalized),r.workbook,r.source_row]){const td=document.createElement('td');td.textContent=v;tr.append(td);}tbody.append(tr);}
  }
  async function show(gene){
   gene=String(gene).trim().toUpperCase();if(requested===gene){if(data)render();return;}
